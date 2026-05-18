@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/boab/cyclonedx-1.6.subset.json",
+  "title": "CycloneDX 1.6 subset (Boab CBOM checks)",
+  "description": "A focused subset of the CycloneDX 1.6 schema that validates the fields Boab emits. The full schema is at https://cyclonedx.org/schema/bom-1.6.schema.json and is permitted as a superset; this subset checks the invariants Boab relies on.",
+  "type": "object",
+  "required": ["bomFormat", "specVersion", "version", "metadata", "components"],
+  "properties": {
+    "bomFormat": { "type": "string", "const": "CycloneDX" },
+    "specVersion": { "type": "string", "const": "1.6" },
+    "serialNumber": { "type": "string", "pattern": "^urn:uuid:" },
+    "version": { "type": "integer", "minimum": 1 },
+    "metadata": {
+      "type": "object",
+      "required": ["timestamp", "tools"],
+      "properties": {
+        "timestamp": { "type": "string" },
+        "tools": {
+          "type": "object",
+          "required": ["components"],
+          "properties": {
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type", "name", "version"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "bom-ref", "name", "cryptoProperties"],
+        "properties": {
+          "type": { "type": "string", "const": "cryptographic-asset" },
+          "bom-ref": { "type": "string" },
+          "name": { "type": "string" },
+          "cryptoProperties": {
+            "type": "object",
+            "required": ["assetType"],
+            "properties": {
+              "assetType": {
+                "type": "string",
+                "enum": [
+                  "algorithm",
+                  "certificate",
+                  "related-crypto-material",
+                  "protocol"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

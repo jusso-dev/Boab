@@ -135,7 +135,7 @@ fn config_get_and_set() {
 }
 
 #[test]
-fn report_stub_exits_64() {
+fn report_empty_workspace_still_emits_file() {
     let tmp = TempDir::new().unwrap();
     bin()
         .args(["--workspace", tmp.path().to_str().unwrap(), "init"])
@@ -150,7 +150,9 @@ fn report_stub_exits_64() {
             "json",
         ])
         .assert()
-        .code(64);
+        .success();
+    let p = tmp.path().join(".boab/reports/report.json");
+    assert!(p.is_file());
 }
 
 #[test]

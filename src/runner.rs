@@ -504,9 +504,28 @@ fn cmd_vendor(workspace_root: &std::path::Path, sub: &VendorCommand) -> Result<i
     }
 }
 
-fn cmd_report(_workspace_root: &std::path::Path, _args: &crate::cli::ReportArgs) -> Result<i32> {
-    eprintln!("report: not yet implemented");
-    Ok(EXIT_NOT_IMPLEMENTED)
+fn cmd_report(workspace_root: &std::path::Path, args: &crate::cli::ReportArgs) -> Result<i32> {
+    let ws = Workspace::open(workspace_root)?;
+    let format = args.format.to_ascii_lowercase();
+    let default_name = match format.as_str() {
+        "json" => "report.json",
+        "cbom" => "bom.cdx.json",
+        "md" => "readiness.md",
+        other => return Err(anyhow!("unknown report format: {}", other)),
+    };
+    let out_path = args
+        .output
+        .clone()
+        .unwrap_or_else(|| ws.reports_dir().join(default_name));
+
+    match format.as_str() {
+        "json" => crate::report::json::write(&ws, &out_path)?,
+        "cbom" => crate::report::cbom::write(&ws, &out_path)?,
+        "md" => crate::report::markdown::write(&ws, &out_path)?,
+        _ => unreachable!(),
+    }
+    println!("wrote {} report to {}", format, out_path.display());
+    Ok(0)
 }
 
 fn cmd_config(workspace_root: &std::path::Path, sub: &ConfigCommand) -> Result<i32> {
