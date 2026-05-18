@@ -267,14 +267,46 @@ fn cmd_inventory(workspace_root: &std::path::Path, sub: &InventoryCommand) -> Re
     }
 }
 
-fn cmd_scan(_workspace_root: &std::path::Path, sub: &ScanCommand) -> Result<i32> {
-    let name = match sub {
-        ScanCommand::Codebase(_) => "scan codebase",
-        ScanCommand::Tls(_) => "scan tls",
-        ScanCommand::Certs(_) => "scan certs",
-    };
-    eprintln!("{}: not yet implemented", name);
-    Ok(EXIT_NOT_IMPLEMENTED)
+fn cmd_scan(workspace_root: &std::path::Path, sub: &ScanCommand) -> Result<i32> {
+    use crate::scanners::codebase::{self, CodebaseOptions};
+
+    match sub {
+        ScanCommand::Codebase(args) => {
+            let ws = Workspace::open(workspace_root)?;
+            let path = match (args.path.as_ref(), args.git.as_ref()) {
+                (Some(p), _) => p.clone(),
+                (None, Some(_url)) => {
+                    eprintln!("git cloning is not yet implemented; pass a local path instead");
+                    return Ok(EXIT_NOT_IMPLEMENTED);
+                }
+                (None, None) => return Err(anyhow!("missing path or --git URL")),
+            };
+            let opts = CodebaseOptions {
+                include: args.include.clone(),
+                exclude: args.exclude.clone(),
+                name: args.name.clone(),
+            };
+            let mut scan = codebase::scan_path(&path, &opts)?;
+            let inventory_count = crate::dedup::promote_into_workspace(&mut scan, &ws)?.len();
+            crate::storage::save_scan(&ws, &scan)?;
+            println!(
+                "scan {} complete: {} findings, inventory {} entries",
+                scan.id,
+                scan.findings.len(),
+                inventory_count
+            );
+            Ok(0)
+        }
+        ScanCommand::Tls(_) | ScanCommand::Certs(_) => {
+            let name = match sub {
+                ScanCommand::Tls(_) => "scan tls",
+                ScanCommand::Certs(_) => "scan certs",
+                _ => unreachable!(),
+            };
+            eprintln!("{}: not yet implemented", name);
+            Ok(EXIT_NOT_IMPLEMENTED)
+        }
+    }
 }
 
 fn cmd_plan(_workspace_root: &std::path::Path, sub: &PlanCommand) -> Result<i32> {

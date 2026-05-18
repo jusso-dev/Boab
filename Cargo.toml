@@ -55,6 +55,7 @@ p12-keystore = { version = "0.1", optional = true }
 jks = { version = "0.1", optional = true }
 base64 = "0.22"
 hex = "0.4"
+once_cell = "1"
 
 [dev-dependencies]
 assert_cmd = "2"

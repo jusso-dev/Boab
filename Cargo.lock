@@ -312,6 +312,7 @@ dependencies = [
  "insta",
  "jks",
  "jsonschema",
+ "once_cell",
  "p12-keystore",
  "predicates",
  "regex",

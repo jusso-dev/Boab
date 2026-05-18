@@ -135,7 +135,7 @@ fn config_get_and_set() {
 }
 
 #[test]
-fn scan_codebase_stub_exits_64() {
+fn scan_tls_stub_exits_64() {
     let tmp = TempDir::new().unwrap();
     bin()
         .args(["--workspace", tmp.path().to_str().unwrap(), "init"])
@@ -146,8 +146,8 @@ fn scan_codebase_stub_exits_64() {
             "--workspace",
             tmp.path().to_str().unwrap(),
             "scan",
-            "codebase",
-            tmp.path().to_str().unwrap(),
+            "tls",
+            "example.com:443",
         ])
         .assert()
         .code(64);
