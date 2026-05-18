@@ -362,25 +362,146 @@ fn cmd_scan(workspace_root: &std::path::Path, sub: &ScanCommand) -> Result<i32> 
     }
 }
 
-fn cmd_plan(_workspace_root: &std::path::Path, sub: &PlanCommand) -> Result<i32> {
-    let name = match sub {
-        PlanCommand::Generate(_) => "plan generate",
-        PlanCommand::List => "plan list",
-        PlanCommand::Show(_) => "plan show",
-        PlanCommand::Regenerate(_) => "plan regenerate",
-    };
-    eprintln!("{}: not yet implemented", name);
-    Ok(EXIT_NOT_IMPLEMENTED)
+fn cmd_plan(workspace_root: &std::path::Path, sub: &PlanCommand) -> Result<i32> {
+    let ws = Workspace::open(workspace_root)?;
+    match sub {
+        PlanCommand::Generate(args) => {
+            let milestone = crate::plan::parse_milestone(&args.milestone)?;
+            let plan = crate::plan::generate(&ws, milestone, args.name.clone())?;
+            crate::plan::save(&ws, &plan)?;
+            println!(
+                "plan {} generated for {}: {} items",
+                plan.id,
+                milestone.year(),
+                plan.items.len()
+            );
+            Ok(0)
+        }
+        PlanCommand::List => {
+            let plans = storage::list_plans(&ws)?;
+            if plans.is_empty() {
+                println!("(no plans)");
+                return Ok(0);
+            }
+            let mut t = Table::new();
+            t.load_preset(presets::UTF8_FULL);
+            t.set_header(vec!["ID", "NAME", "MILESTONE", "ITEMS", "GENERATED"]);
+            for p in &plans {
+                t.add_row(vec![
+                    Cell::new(p.id),
+                    Cell::new(&p.name),
+                    Cell::new(p.milestone.year()),
+                    Cell::new(p.items.len()),
+                    Cell::new(
+                        p.generated_at
+                            .format(&time::format_description::well_known::Rfc3339)
+                            .unwrap_or_default(),
+                    ),
+                ]);
+            }
+            println!("{}", t);
+            Ok(0)
+        }
+        PlanCommand::Show(args) => {
+            let plan = storage::load_plan(&ws, args.id)?;
+            println!("{}", serde_json::to_string_pretty(&plan)?);
+            Ok(0)
+        }
+        PlanCommand::Regenerate(args) => {
+            let plan = crate::plan::regenerate(&ws, args.id)?;
+            crate::plan::save(&ws, &plan)?;
+            println!(
+                "plan {} regenerated: {} items (user edits preserved)",
+                plan.id,
+                plan.items.len()
+            );
+            Ok(0)
+        }
+    }
 }
 
-fn cmd_vendor(_workspace_root: &std::path::Path, sub: &VendorCommand) -> Result<i32> {
-    let name = match sub {
-        VendorCommand::List => "vendor list",
-        VendorCommand::Add(_) => "vendor add",
-        VendorCommand::Search(_) => "vendor search",
-    };
-    eprintln!("{}: not yet implemented", name);
-    Ok(EXIT_NOT_IMPLEMENTED)
+fn cmd_vendor(workspace_root: &std::path::Path, sub: &VendorCommand) -> Result<i32> {
+    let ws = Workspace::open(workspace_root)?;
+    match sub {
+        VendorCommand::List => {
+            let merged = crate::vendor::load_merged(&ws)?;
+            if merged.entries.is_empty() {
+                println!("(no vendor entries)");
+                return Ok(0);
+            }
+            let mut t = Table::new();
+            t.load_preset(presets::UTF8_FULL);
+            t.set_header(vec!["VENDOR", "PRODUCT", "PQC", "TARGET", "SOURCE"]);
+            for e in &merged.entries {
+                t.add_row(vec![
+                    Cell::new(&e.vendor),
+                    Cell::new(&e.product),
+                    Cell::new(format!("{:?}", e.pqc_status).to_ascii_lowercase()),
+                    Cell::new(e.target_date.clone().unwrap_or_else(|| "-".into())),
+                    Cell::new(e.source_url.clone().unwrap_or_else(|| "-".into())),
+                ]);
+            }
+            println!("{}", t);
+            Ok(0)
+        }
+        VendorCommand::Search(args) => {
+            let merged = crate::vendor::load_merged(&ws)?;
+            let results = merged.search(&args.term);
+            if results.is_empty() {
+                println!("(no matches for {})", args.term);
+                return Ok(0);
+            }
+            let mut t = Table::new();
+            t.load_preset(presets::UTF8_FULL);
+            t.set_header(vec!["VENDOR", "PRODUCT", "PQC", "TARGET"]);
+            for e in results {
+                t.add_row(vec![
+                    Cell::new(&e.vendor),
+                    Cell::new(&e.product),
+                    Cell::new(format!("{:?}", e.pqc_status).to_ascii_lowercase()),
+                    Cell::new(e.target_date.clone().unwrap_or_else(|| "-".into())),
+                ]);
+            }
+            println!("{}", t);
+            Ok(0)
+        }
+        VendorCommand::Add(args) => {
+            use crate::model::asset::PqcStatus;
+            use crate::model::vendor::VendorEntry;
+            let status = match args.pqc_status.to_ascii_lowercase().as_str() {
+                "vulnerable" => PqcStatus::Vulnerable,
+                "hybrid" => PqcStatus::Hybrid,
+                "resistant" => PqcStatus::Resistant,
+                "symmetric_ok" => PqcStatus::SymmetricOk,
+                "unknown" => PqcStatus::Unknown,
+                other => {
+                    return Err(anyhow!(
+                        "unknown pqc_status: {} (expected vulnerable|hybrid|resistant|symmetric_ok|unknown)",
+                        other
+                    ))
+                }
+            };
+            let mut overrides = storage::load_vendor_overrides(&ws)?;
+            let entry = VendorEntry {
+                vendor: args.vendor.clone(),
+                product: args.product.clone(),
+                pqc_status: status,
+                target_date: args.target_date.clone(),
+                source_url: args.source_url.clone(),
+                source_note: args.source_note.clone(),
+                last_verified_at: Some(time::OffsetDateTime::now_utc()),
+            };
+            let key = entry.key();
+            if let Some(existing) = overrides.entries.iter_mut().find(|e| e.key() == key) {
+                *existing = entry;
+            } else {
+                overrides.entries.push(entry);
+            }
+            storage::save_vendor_overrides(&ws, &overrides)?;
+            println!("vendor override saved");
+            Ok(0)
+        }
+    }
 }
 
 fn cmd_report(_workspace_root: &std::path::Path, _args: &crate::cli::ReportArgs) -> Result<i32> {

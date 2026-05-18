@@ -154,23 +154,17 @@ fn report_stub_exits_64() {
 }
 
 #[test]
-fn plan_generate_stub_exits_64() {
+fn plan_list_on_empty_workspace_says_so() {
     let tmp = TempDir::new().unwrap();
     bin()
         .args(["--workspace", tmp.path().to_str().unwrap(), "init"])
         .assert()
         .success();
     bin()
-        .args([
-            "--workspace",
-            tmp.path().to_str().unwrap(),
-            "plan",
-            "generate",
-            "--milestone",
-            "2028",
-        ])
+        .args(["--workspace", tmp.path().to_str().unwrap(), "plan", "list"])
         .assert()
-        .code(64);
+        .success()
+        .stdout(predicate::str::contains("(no plans)"));
 }
 
 #[test]
