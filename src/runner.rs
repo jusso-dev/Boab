@@ -297,14 +297,67 @@ fn cmd_scan(workspace_root: &std::path::Path, sub: &ScanCommand) -> Result<i32> 
             );
             Ok(0)
         }
-        ScanCommand::Tls(_) | ScanCommand::Certs(_) => {
-            let name = match sub {
-                ScanCommand::Tls(_) => "scan tls",
-                ScanCommand::Certs(_) => "scan certs",
-                _ => unreachable!(),
+        ScanCommand::Tls(args) => {
+            use crate::scanners::tls::{self, TlsOptions};
+            let ws = Workspace::open(workspace_root)?;
+            let cfg = crate::config::load(&ws)?;
+            let mut targets = args.targets.clone();
+            if let Some(file) = &args.targets_file {
+                let raw = std::fs::read_to_string(file)?;
+                targets.extend(
+                    raw.lines()
+                        .map(|l| l.trim())
+                        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+                        .map(str::to_string),
+                );
+            }
+            if targets.is_empty() {
+                return Err(anyhow!(
+                    "no TLS targets specified; pass host:port or --targets-file"
+                ));
+            }
+            let opts = TlsOptions {
+                rate_limit: args.rate_limit.clone(),
+                timeout_seconds: args.timeout_seconds,
+                probe_hsts: args.probe_hsts,
+                exclude: args.exclude.clone(),
+                name: args.name.clone(),
+                air_gapped: cfg.scanner.air_gapped,
             };
-            eprintln!("{}: not yet implemented", name);
-            Ok(EXIT_NOT_IMPLEMENTED)
+            let rt = tokio::runtime::Runtime::new()?;
+            let scans = rt.block_on(tls::scan_targets(&targets, &opts))?;
+            let mut inventory_count = 0usize;
+            for mut scan in scans {
+                inventory_count = crate::dedup::promote_into_workspace(&mut scan, &ws)?.len();
+                crate::storage::save_scan(&ws, &scan)?;
+                println!(
+                    "tls scan {} target={} status={:?} findings={}",
+                    scan.id,
+                    scan.target,
+                    scan.status,
+                    scan.findings.len()
+                );
+            }
+            println!("inventory now has {} entries", inventory_count);
+            Ok(0)
+        }
+        ScanCommand::Certs(args) => {
+            use crate::scanners::cert_store::{self, CertStoreOptions};
+            let ws = Workspace::open(workspace_root)?;
+            let opts = CertStoreOptions {
+                password_file: args.password_file.clone(),
+                name: args.name.clone(),
+            };
+            let mut scan = cert_store::scan_path(&args.path, &opts)?;
+            let inventory_count = crate::dedup::promote_into_workspace(&mut scan, &ws)?.len();
+            crate::storage::save_scan(&ws, &scan)?;
+            println!(
+                "cert scan {} complete: {} findings, inventory {} entries",
+                scan.id,
+                scan.findings.len(),
+                inventory_count
+            );
+            Ok(0)
         }
     }
 }

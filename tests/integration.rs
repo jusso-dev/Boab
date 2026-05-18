@@ -135,7 +135,7 @@ fn config_get_and_set() {
 }
 
 #[test]
-fn scan_tls_stub_exits_64() {
+fn report_stub_exits_64() {
     let tmp = TempDir::new().unwrap();
     bin()
         .args(["--workspace", tmp.path().to_str().unwrap(), "init"])
@@ -145,9 +145,9 @@ fn scan_tls_stub_exits_64() {
         .args([
             "--workspace",
             tmp.path().to_str().unwrap(),
-            "scan",
-            "tls",
-            "example.com:443",
+            "report",
+            "--format",
+            "json",
         ])
         .assert()
         .code(64);
