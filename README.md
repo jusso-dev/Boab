@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/boab-logo.png" alt="Boab — Transitioning to Post-Quantum Security" width="720">
+  <img src="assets/boab-logo.png" alt="Boab — Transitioning to Post-Quantum Security" width="480">
 </p>
 
 # Boab
