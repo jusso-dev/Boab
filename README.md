@@ -207,6 +207,51 @@ boab report --format cbom   --output bom.cdx.json
 boab report --format md     --output readiness.md
 ```
 
+## Example output
+
+[`examples/`](./examples) contains a self-contained worked example that
+exercises every scanner against intentionally-weak material:
+
+- five locally generated certs (RSA-1024 with SHA-1, RSA-2048,
+  RSA-4096 with a 20-year validity, ECDSA P-256, and a pre-expired
+  RSA-2048),
+- a tiny Python + Go sample app importing MD5, SHA-1, DES, DSA, RSA,
+  and ECDSA P-256, and
+- eight public [badssl.com](https://badssl.com) TLS endpoints
+  (`expired`, `self-signed`, `rsa2048`, `rsa4096`, `sha1-intermediate`,
+  `tls-v1-0`, `tls-v1-1`, plus the healthy baseline).
+
+The committed [`examples/demo/reports/`](./examples/demo/reports/)
+directory is the output of one such run:
+
+- [`inventory.json`](./examples/demo/reports/inventory.json) — native
+  Boab schema (18 assets, 12 quantum-vulnerable).
+- [`cbom.cdx.json`](./examples/demo/reports/cbom.cdx.json) — CycloneDX
+  1.6 CBOM, each entry tagged with `nistQuantumSecurityLevel`.
+- [`readiness.md`](./examples/demo/reports/readiness.md) — the
+  board-ready Markdown readiness report, ranked by LATICE priority.
+
+Sample inventory rows:
+
+| Asset | Algorithm | PQC status | Priority | Tier |
+|-------|-----------|------------|---------:|-----:|
+| RSA-1024 cert signed with SHA-1 | `sha1WithRSAEncryption` | vulnerable | 5.4 | 3 |
+| `rsa2048.badssl.com` leaf cert | `sha256WithRSAEncryption` | vulnerable | 5.4 | 3 |
+| `MD5` import in demo app | `MD5` | vulnerable | 5.7 | 3 |
+| `X25519` group in TLS handshake | `X25519` | vulnerable | 5.1 | 3 |
+| `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256` | suite | symmetric_ok | 2.7 | 4 |
+
+Reproduce locally with:
+
+```sh
+cargo build --release
+cd examples/demo
+./run-demo.sh ../../target/release/boab
+```
+
+See [`examples/README.md`](./examples/README.md) for the full
+walkthrough.
+
 ## Air-gapped operation
 
 `scanner.air_gapped = true` is the default in `.boab/config.toml`.

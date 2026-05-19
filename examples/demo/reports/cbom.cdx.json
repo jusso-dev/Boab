@@ -1,0 +1,383 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:93580899-fe63-4cb1-8c44-991c19fbac3f",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-05-19T01:42:01.754548Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "boab",
+          "version": "0.1.0"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:941263ff-76f5-47f7-ac59-2fd24d85ff1d",
+      "name": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256@rsa2048.badssl.com",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls",
+          "version": "unknown",
+          "cipherSuites": [
+            {
+              "name": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            }
+          ]
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:14258af7-e5b0-4404-a775-04cdcf3420dc",
+      "name": "rsa2048.badssl.com:443|CN=*.badssl.com",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "rsa2048.badssl.com:443|CN=*.badssl.com",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:8c019362-1460-4fe1-a588-aafbb8a573fa",
+      "name": "rsa2048.badssl.com:443|C=US, O=Let's Encrypt, CN=R13",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "rsa2048.badssl.com:443|C=US, O=Let's Encrypt, CN=R13",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:690538f9-a740-4638-9041-c83e1a2a4f2b",
+      "name": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256@rsa4096.badssl.com",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls",
+          "version": "unknown",
+          "cipherSuites": [
+            {
+              "name": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            }
+          ]
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:b81e9fab-24da-4526-948c-fc85946a3119",
+      "name": "rsa4096.badssl.com:443|CN=*.badssl.com",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "rsa4096.badssl.com:443|CN=*.badssl.com",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:510d0302-53b1-4e13-92a4-0d3c70456409",
+      "name": "rsa4096.badssl.com:443|C=US, O=Let's Encrypt, CN=R12",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "rsa4096.badssl.com:443|C=US, O=Let's Encrypt, CN=R12",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:fd6f0613-28a0-4c9f-a1b6-b9168ac1bb1c",
+      "name": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256@badssl.com",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "protocol",
+        "protocolProperties": {
+          "type": "tls",
+          "version": "unknown",
+          "cipherSuites": [
+            {
+              "name": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            }
+          ]
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:637167c7-11b6-4f41-b96c-eb111788c0c6",
+      "name": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/ecdsa-p256.crt|CN=ecdsa-p256.example, O=Boab Demo, C=AU",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/ecdsa-p256.crt|CN=ecdsa-p256.example, O=Boab Demo, C=AU",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "ecdsa-with-SHA256",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:d3df9050-cad2-474b-a7b4-6c931fce91f5",
+      "name": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa1024.crt|CN=weak-rsa1024.example, O=Boab Demo, C=AU",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa1024.crt|CN=weak-rsa1024.example, O=Boab Demo, C=AU",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha1WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:75a4d4ed-e46f-4563-a646-3c48e1b60188",
+      "name": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa2048.crt|CN=rsa2048.example, O=Boab Demo, C=AU",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa2048.crt|CN=rsa2048.example, O=Boab Demo, C=AU",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:948a6c4a-efbc-4d5b-a005-550ee6702669",
+      "name": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/expired.crt|CN=expired.example, O=Boab Demo, C=AU",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/expired.crt|CN=expired.example, O=Boab Demo, C=AU",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:1f7e8b0c-6581-4f94-bb48-3decffe28c5d",
+      "name": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa4096.crt|CN=long-lived-rsa4096.example, O=Boab Demo, C=AU",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "certificate",
+        "certificateProperties": {
+          "subjectName": "/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa4096.crt|CN=long-lived-rsa4096.example, O=Boab Demo, C=AU",
+          "issuerName": "",
+          "notValidBefore": "",
+          "notValidAfter": "",
+          "signatureAlgorithmRef": "sha256WithRSAEncryption",
+          "certificateFormat": "X.509"
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:6c50950a-7368-4f2f-8f23-22899870bcde",
+      "name": "X25519",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "key-agree",
+          "parameterSetIdentifier": "255 bits",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "generate",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:93fcbd30-99bc-40ff-967d-a691a6180139",
+      "name": "stdlib crypto",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "unknown",
+          "parameterSetIdentifier": "stdlib crypto",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "generate",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:78913079-2047-46bf-a8c8-5534c926640a",
+      "name": "MD5",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "MD5",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "generate",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:e04e1a1e-1b0f-47b7-b02b-9353e6df8055",
+      "name": "SHA-1",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "hash",
+          "parameterSetIdentifier": "SHA-1",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "generate",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:13776188-f156-48bf-a390-1fe5a6d09911",
+      "name": "pycryptodome",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "unknown",
+          "parameterSetIdentifier": "pycryptodome",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "generate",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": ""
+      }
+    },
+    {
+      "type": "cryptographic-asset",
+      "bom-ref": "boab:e1522188-a343-4a89-9c50-bd236ce11399",
+      "name": "hashlib",
+      "description": null,
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "primitive": "unknown",
+          "parameterSetIdentifier": "hashlib",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "generic",
+          "certificationLevel": [
+            "none"
+          ],
+          "cryptoFunctions": [
+            "generate",
+            "verify"
+          ],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": ""
+      }
+    }
+  ]
+}
