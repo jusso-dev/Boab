@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/boab-logo.png" alt="Boab — Transitioning to Post-Quantum Security" width="720">
+</p>
+
 # Boab
 
 Boab is a Rust command-line tool that helps Australian organisations
