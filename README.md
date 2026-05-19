@@ -239,19 +239,167 @@ ASD LATICE phase status, top 25 priority assets, triage tier
 distribution, PQC status distribution, vendor PQC dependency
 summary, plans on file, methodology appendix, generated-at footer.
 
+## What Boab checks
+
+Boab ships three scanners. Each emits findings into a shared dedup
+pipeline that promotes them into the canonical inventory.
+
+### Codebase scanner: languages and patterns
+
+The codebase scanner walks the target path with `.gitignore`
+semantics (default excludes: `node_modules`, `vendor`, `.venv`,
+`venv`, `target`, `dist`, `build`, `.git`). For each file, Boab
+applies a language-agnostic algorithm-name pattern pack plus a
+per-language crypto-library import pattern pack.
+
+**Languages detected by file extension:**
+
+| Language | Extensions |
+| -------- | ---------- |
+| Rust | `.rs` |
+| Go | `.go` |
+| Python | `.py` |
+| JavaScript / TypeScript | `.js`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.jsx` |
+| Java / Kotlin | `.java`, `.kt`, `.kts` |
+| .NET (C#, VB, F#) | `.cs`, `.vb`, `.fs` |
+| Generic config | `.toml`, `.yaml`, `.yml`, `.json`, `.xml`, `.conf`, `.ini` |
+
+**Algorithm literals detected in any file (high confidence):**
+
+| Class | Algorithms |
+| ----- | ---------- |
+| Broken hashes | MD5, SHA-1 |
+| Vulnerable RSA | RSA-1024, RSA-2048, RSA-3072, RSA-4096 |
+| Vulnerable ECC | ECDSA-P-256, ECDSA-P-384, Ed25519, X25519 |
+| Other broken primitives | 3DES, TripleDES, DES-EDE3, RC4 |
+| Symmetric (safe) | AES-128 (GCM/CBC/CCM/CTR), AES-256 (GCM/CBC/CCM/CTR), ChaCha20, ChaCha20-Poly1305 |
+| Modern hashes (safe) | SHA-256, SHA-384, SHA-512 |
+| PQC standards | ML-KEM (512/768/1024), ML-DSA (44/65/87), SLH-DSA, Kyber, Dilithium |
+| PQ hybrid signals | X25519MLKEM768 |
+
+**JWT / JWA `alg` token values detected in source:**
+
+| Token | Algorithm | PQC status |
+| ----- | --------- | ---------- |
+| `RS256` | RSA + SHA-256 | vulnerable |
+| `ES256` | ECDSA P-256 | vulnerable |
+| `EdDSA` | Ed25519 | vulnerable |
+| `HS256` | HMAC-SHA-256 | symmetric_ok |
+
+**Crypto library imports detected (medium confidence):**
+
+| Language | Libraries |
+| -------- | --------- |
+| Rust | `ring`, `rustls`, `openssl`, `sha2` |
+| Go | `crypto/*` standard library, `golang.org/x/crypto/*` |
+| Python | `cryptography`, `pycryptodome` (Crypto), `hashlib`, `ssl`, `pyjwt` |
+| JavaScript / TypeScript | `node:crypto` (require/import), `node-forge`, `tweetnacl`, `jsonwebtoken` |
+| Java / Kotlin | `javax.crypto`, `java.security`, BouncyCastle (`org.bouncycastle`) |
+| .NET | `System.Security.Cryptography` |
+
+**Cert and key files detected by extension (low confidence
+placeholder findings):** `.pem`, `.crt`, `.cer`, `.der`, `.p7b`,
+`.p12`, `.pfx`, `.jks`, `.key`.
+
+### TLS endpoint scanner: what it captures
+
+For each `host:port` target, Boab attempts a TLS 1.3 handshake and
+falls back to TLS 1.2 if needed. Per target it records:
+
+- Negotiated TLS protocol version.
+- Negotiated cipher suite (full IANA name).
+- ALPN protocol if negotiated.
+- Full certificate chain. For each certificate: subject, issuer,
+  signature algorithm (OID and friendly name), public key algorithm
+  and approximate key size in bits, validity window
+  (`notBefore` / `notAfter`), and SHA-256 fingerprint.
+- PQ hybrid group recognition by codepoint, including
+  `X25519MLKEM768` (`0x11EC`) and `X25519Kyber768Draft00` (`0x6399`).
+
+Defaults: 10 second connection timeout, 1 host per second rate limit
+(overridable with `--rate-limit`). HSTS probing requires `--probe-hsts`
+and is refused in air-gapped mode.
+
+### Certificate store scanner: file types and fields
+
+Walks a directory for files matching `.pem`, `.crt`, `.cer`, `.der`,
+`.p7b`, `.p12`, `.pfx`, `.jks`. Parsing:
+
+| Format | Parser | Notes |
+| ------ | ------ | ----- |
+| PEM (`.pem`, `.crt`, `.cer`, `.p7b`) | `x509-parser` | Multi-block files supported. |
+| DER (`.der`) | `x509-parser` | |
+| PKCS#12 (`.p12`, `.pfx`) | `p12-keystore` | Password via `--password-file`. |
+| JKS (`.jks`) | placeholder only | Convert to PKCS12 with `keytool`. |
+
+For every X.509 certificate Boab records subject, issuer, signature
+algorithm OID and friendly name, public key algorithm OID and
+friendly name, validity window, and SHA-256 fingerprint of the DER
+bytes. Passwords are never logged or stored in `.boab/`.
+
+### Algorithm risk classification
+
+Every detected algorithm is mapped to a `pqc_status`:
+
+- `vulnerable`: broken by Shor's or Grover's algorithm at production
+  parameters, e.g. RSA, ECDSA, classic DH.
+- `hybrid`: PQ/T hybrid such as `X25519MLKEM768`. Provides classical
+  security today and post-quantum security in the long term.
+- `resistant`: NIST FIPS 203/204/205 primitives (ML-KEM, ML-DSA,
+  SLH-DSA) and their Round 3 predecessors (Kyber, Dilithium, Falcon).
+- `symmetric_ok`: AES-128 or larger, SHA-256 or larger, ChaCha20.
+  Quantum-resistant under Grover with doubled key sizes.
+- `unknown`: Boab could not classify (defaults to a conservative
+  vulnerability score of 7).
+
 ## Vendor PQC dependency registry
 
 Boab bundles a starter registry of the vendors most Australian
-organisations encounter inside an ASD-aligned ICT estate (Microsoft,
-AWS, Google Cloud, Oracle, Cisco, Palo Alto Networks, Fortinet, F5,
-Citrix, Apache, nginx, OpenSSL, BoringSSL, BouncyCastle, HashiCorp,
-CyberArk, Thales, Entrust). Each entry records the vendor's published
-PQC status and source URL. Customer overrides live in
-`.boab/vendor-overrides.json` and merge on top by `(vendor, product)`.
+organisations encounter inside an ASD-aligned ICT estate. Each entry
+records the vendor's published PQC status and source URL. Customer
+overrides live in `.boab/vendor-overrides.json` and merge on top by
+`(vendor, product)`.
+
+**Bundled coverage (26 products across 18 vendors):**
+
+| Vendor | Product | Current PQC status |
+| ------ | ------- | ------------------ |
+| Microsoft | Windows | unknown |
+| Microsoft | Azure | unknown |
+| Microsoft | M365 | unknown |
+| AWS | KMS | hybrid |
+| AWS | ACM | unknown |
+| AWS | TLS (s2n-tls) | hybrid |
+| Google | Cloud | hybrid |
+| Oracle | Database | unknown |
+| Oracle | WebLogic | unknown |
+| Cisco | IOS XE | unknown |
+| Cisco | ASA | unknown |
+| Cisco | Firepower | unknown |
+| Palo Alto Networks | PAN-OS | unknown |
+| Fortinet | FortiOS | unknown |
+| F5 | BIG-IP | unknown |
+| Citrix | NetScaler | unknown |
+| Apache | httpd | unknown |
+| Apache | Tomcat | unknown |
+| nginx | nginx | unknown |
+| OpenSSL | OpenSSL | hybrid |
+| BoringSSL | BoringSSL | hybrid |
+| BouncyCastle | Java | resistant |
+| HashiCorp | Vault | unknown |
+| CyberArk | PAM | unknown |
+| Thales | Luna HSM | hybrid |
+| Entrust | nShield | hybrid |
 
 There is no live fetching. The registry is a code artefact that
 refreshes via pull request, with the process documented in
-`docs/vendor-registry.md`.
+`docs/vendor-registry.md`. Status values follow the same five-way
+classification Boab uses elsewhere (`vulnerable`, `hybrid`,
+`resistant`, `symmetric_ok`, `unknown`).
+
+`unknown` is the honest default for any vendor that has not made a
+public, dated PQC commitment. Boab does not synthesise optimistic
+roadmap dates.
 
 ## Reading list
 
