@@ -310,7 +310,12 @@ pub struct PushArgs {
 #[derive(Args)]
 pub struct PushOptions {
     /// Endpoint to POST the CBOM to. Nothing is sent unless a URL is set.
-    #[arg(long, env = "BOAB_PUSH_URL", value_name = "URL")]
+    #[arg(
+        long,
+        env = "BOAB_PUSH_URL",
+        hide_env_values = true,
+        value_name = "URL"
+    )]
     pub url: Option<String>,
     /// Bearer token or API key for the Authorization header. Prefer BOAB_PUSH_TOKEN.
     #[arg(
@@ -324,7 +329,12 @@ pub struct PushOptions {
     #[arg(long = "header", value_name = "KEY=VALUE")]
     pub headers: Vec<String>,
     /// Run identifier sent in the X-Boab-Run-Id header.
-    #[arg(long, env = "BOAB_PUSH_RUN_ID", value_name = "ID")]
+    #[arg(
+        long,
+        env = "BOAB_PUSH_RUN_ID",
+        hide_env_values = true,
+        value_name = "ID"
+    )]
     pub run_id: Option<String>,
     /// Allow plain http:// URLs.
     #[arg(long)]

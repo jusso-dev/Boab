@@ -23,7 +23,7 @@ $script:BoabGlobalArgs = @(
 )
 
 $script:BoabCommandSpec = @{
-    ''                = @{ Subcommands = @('init', 'system', 'inventory', 'scan', 'plan', 'vendor', 'report', 'config'); Args = @() }
+    ''                = @{ Subcommands = @('init', 'system', 'inventory', 'scan', 'plan', 'vendor', 'report', 'push', 'config'); Args = @() }
     'init'            = @{ Args = @(
             (New-BoabArgSpec -Name 'force' -Kind flag -Long 'force')
             (New-BoabArgSpec -Name 'yes' -Kind flag -Long 'yes'))
@@ -99,7 +99,29 @@ $script:BoabCommandSpec = @{
     'vendor search'   = @{ Args = @((New-BoabArgSpec -Name 'term' -Kind pos -ValueName 'TERM' -Required)) }
     'report'          = @{ Args = @(
             (New-BoabArgSpec -Name 'format' -Kind option -Long 'format' -ValueName 'FORMAT' -Required)
-            (New-BoabArgSpec -Name 'output' -Kind option -Long 'output' -Short 'o' -ValueName 'OUTPUT' -Type path))
+            (New-BoabArgSpec -Name 'output' -Kind option -Long 'output' -Short 'o' -ValueName 'OUTPUT' -Type path)
+            (New-BoabArgSpec -Name 'push' -Kind flag -Long 'push')
+            (New-BoabArgSpec -Name 'url' -Kind option -Long 'url' -ValueName 'URL')
+            (New-BoabArgSpec -Name 'token' -Kind option -Long 'token' -ValueName 'TOKEN')
+            (New-BoabArgSpec -Name 'header' -Kind multi -Long 'header' -ValueName 'KEY=VALUE')
+            (New-BoabArgSpec -Name 'run_id' -Kind option -Long 'run-id' -ValueName 'ID')
+            (New-BoabArgSpec -Name 'insecure' -Kind flag -Long 'insecure')
+            (New-BoabArgSpec -Name 'connect_timeout_seconds' -Kind option -Long 'connect-timeout-seconds' -ValueName 'CONNECT_TIMEOUT_SECONDS' -Type u64 -Default ([long]10))
+            (New-BoabArgSpec -Name 'push_timeout_seconds' -Kind option -Long 'push-timeout-seconds' -ValueName 'PUSH_TIMEOUT_SECONDS' -Type u64 -Default ([long]60))
+            (New-BoabArgSpec -Name 'retries' -Kind option -Long 'retries' -ValueName 'RETRIES' -Type u64 -Default ([long]3))
+            (New-BoabArgSpec -Name 'retry_delay_ms' -Kind option -Long 'retry-delay-ms' -ValueName 'RETRY_DELAY_MS' -Type u64 -Default ([long]1000)))
+    }
+    'push'            = @{ Args = @(
+            (New-BoabArgSpec -Name 'file' -Kind option -Long 'file' -Short 'f' -ValueName 'FILE' -Type path)
+            (New-BoabArgSpec -Name 'url' -Kind option -Long 'url' -ValueName 'URL')
+            (New-BoabArgSpec -Name 'token' -Kind option -Long 'token' -ValueName 'TOKEN')
+            (New-BoabArgSpec -Name 'header' -Kind multi -Long 'header' -ValueName 'KEY=VALUE')
+            (New-BoabArgSpec -Name 'run_id' -Kind option -Long 'run-id' -ValueName 'ID')
+            (New-BoabArgSpec -Name 'insecure' -Kind flag -Long 'insecure')
+            (New-BoabArgSpec -Name 'connect_timeout_seconds' -Kind option -Long 'connect-timeout-seconds' -ValueName 'CONNECT_TIMEOUT_SECONDS' -Type u64 -Default ([long]10))
+            (New-BoabArgSpec -Name 'push_timeout_seconds' -Kind option -Long 'push-timeout-seconds' -ValueName 'PUSH_TIMEOUT_SECONDS' -Type u64 -Default ([long]60))
+            (New-BoabArgSpec -Name 'retries' -Kind option -Long 'retries' -ValueName 'RETRIES' -Type u64 -Default ([long]3))
+            (New-BoabArgSpec -Name 'retry_delay_ms' -Kind option -Long 'retry-delay-ms' -ValueName 'RETRY_DELAY_MS' -Type u64 -Default ([long]1000)))
     }
     'config'          = @{ Subcommands = @('get', 'set'); Args = @() }
     'config get'      = @{ Args = @((New-BoabArgSpec -Name 'key' -Kind pos -ValueName 'KEY' -Required)) }

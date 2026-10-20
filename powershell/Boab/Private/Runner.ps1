@@ -336,10 +336,18 @@ function Export-BoabReportFile {
 
 function Invoke-BoabRunReport {
     param([hashtable]$Context, [hashtable]$Parsed)
+    if ($Parsed.Values.push) { return (Invoke-BoabRunPush -Context $Context -Parsed $Parsed) }
     $ws = Open-BoabWorkspace -Root $Parsed.Globals.workspace
     $r = Export-BoabReportFile -Workspace $ws -Format $Parsed.Values.format -OutputPath $Parsed.Values.output
     Write-BoabStdout $Context ("wrote {0} report to {1}" -f $r.Format, $r.Display)
     0
+}
+
+function Invoke-BoabRunPush {
+    # `boab push` (and `report --push`) need the Rust binary's HTTPS client; the port does not send anything.
+    param([hashtable]$Context, [hashtable]$Parsed)
+    Write-BoabStderr $Context 'boab push is not yet implemented in the PowerShell port; use the boab binary to push a CBOM'
+    $script:BoabExitNotImplemented
 }
 
 function Invoke-BoabRunConfig {
@@ -374,6 +382,7 @@ function Invoke-BoabRunner {
         'plan' { return (Invoke-BoabRunPlan -Context $Context -Parsed $Parsed -Sub $sub) }
         'vendor' { return (Invoke-BoabRunVendor -Context $Context -Parsed $Parsed -Sub $sub) }
         'report' { return (Invoke-BoabRunReport -Context $Context -Parsed $Parsed) }
+        'push' { return (Invoke-BoabRunPush -Context $Context -Parsed $Parsed) }
         'config' { return (Invoke-BoabRunConfig -Context $Context -Parsed $Parsed -Sub $sub) }
     }
     throw (New-BoabException ("unknown command: {0}" -f $Parsed.Path))

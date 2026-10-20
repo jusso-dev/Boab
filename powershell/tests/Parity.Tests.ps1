@@ -228,6 +228,8 @@ Describe 'Rust binary vs PowerShell module' -Skip:(-not $script:RustBin) {
         Invoke-ParityStep @('-V')
         Invoke-ParityStep @('system')
         Invoke-ParityStep @('scan', 'tls', '--help')
+        Invoke-ParityStep @('report', '--help')
+        Invoke-ParityStep @('push', '--help')
         Invoke-ParityStep @('help', 'vendor', 'add')
         Invoke-ParityStep @('frob')
         Invoke-ParityStep @('system', 'lst')
