@@ -1,0 +1,47 @@
+{
+  "id": "dbf78efb-c4e6-4937-838b-b10a86638b74",
+  "name": "PQC transition plan 2028",
+  "milestone": "y2028",
+  "generated_at": "2026-10-20T08:45:18.929927Z",
+  "items": [
+    {
+      "id": "6a10f3dc-9d00-4e4f-b2b3-03ecc087a22b",
+      "crypto_asset_id": "7bfce873-1955-4282-93e3-4b3dbf3da080",
+      "asset_name": "ECDSA-P-256",
+      "algorithm_name": "ECDSA-P-256",
+      "triage_tier": 1,
+      "priority": 7.8,
+      "target_action": "Replace algorithm with NIST FIPS 203/204/205 equivalent before end of 2028",
+      "target_date": "+002028-03-01T00:00:00.000000000Z",
+      "assignee": null,
+      "notes": null,
+      "status": "pending"
+    },
+    {
+      "id": "364897a3-76b3-4996-956e-62d6eabe4cf9",
+      "crypto_asset_id": "d35a8eab-eee5-4542-9cef-f3256ca0a6b1",
+      "asset_name": "X25519",
+      "algorithm_name": "X25519",
+      "triage_tier": 2,
+      "priority": 6.6,
+      "target_action": "Schedule algorithm replacement inside the 2028 milestone window",
+      "target_date": "+002028-06-01T00:00:00.000000000Z",
+      "assignee": null,
+      "notes": null,
+      "status": "pending"
+    },
+    {
+      "id": "7d4cd899-db4d-4033-9faa-470d15b2c6d4",
+      "crypto_asset_id": "344e5fbf-1171-43de-88fc-5ccfccf0d80c",
+      "asset_name": "Ed25519",
+      "algorithm_name": "Ed25519",
+      "triage_tier": 2,
+      "priority": 6.3,
+      "target_action": "Schedule algorithm replacement inside the 2028 milestone window",
+      "target_date": "+002028-06-01T00:00:00.000000000Z",
+      "assignee": null,
+      "notes": null,
+      "status": "pending"
+    }
+  ]
+}

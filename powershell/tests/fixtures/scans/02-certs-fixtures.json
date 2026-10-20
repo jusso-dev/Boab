@@ -1,0 +1,39 @@
+{
+  "id": "6d5042c7-58ba-47d2-b754-c50f25b30431",
+  "name": "certs:/fixtures/boab/tests/fixtures/certs",
+  "scan_type": "certificate_store",
+  "status": "completed",
+  "target": "/fixtures/boab/tests/fixtures/certs",
+  "config": {
+    "password_provided": false
+  },
+  "started_at": "2026-10-20T08:42:37.946789Z",
+  "completed_at": "2026-10-20T08:42:37.947337Z",
+  "findings": [
+    {
+      "id": "e21326c3-fe5c-43b1-80fc-5622e664228f",
+      "scan_id": "6d5042c7-58ba-47d2-b754-c50f25b30431",
+      "crypto_asset_id": "e0db8eec-d3ae-425d-9a9c-2cf7c1720288",
+      "source_type": "cert_subject",
+      "source_location": "/fixtures/boab/tests/fixtures/certs/rsa2048-selfsigned.pem|CN=boab-test, O=Boab, C=AU",
+      "evidence": {
+        "kind": "tls_certificate",
+        "target": "/fixtures/boab/tests/fixtures/certs/rsa2048-selfsigned.pem",
+        "subject": "CN=boab-test, O=Boab, C=AU",
+        "issuer": "CN=boab-test, O=Boab, C=AU",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "signature_algorithm_oid": "1.2.840.113549.1.1.11",
+        "public_key_algorithm": "RSA",
+        "public_key_algorithm_oid": "1.2.840.113549.1.1.1",
+        "not_before_unix": 1779144968,
+        "not_after_unix": 2094504968,
+        "fingerprint_sha256": "a1d6a45c575e4b17b11f371e570e92316037041c755c4eff1d46e0e4eb29325e",
+        "pqc_status": "vulnerable"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.947326Z"
+    }
+  ],
+  "error_message": null
+}

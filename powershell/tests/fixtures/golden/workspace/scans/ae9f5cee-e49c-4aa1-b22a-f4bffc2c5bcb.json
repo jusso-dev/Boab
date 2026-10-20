@@ -1,0 +1,259 @@
+{
+  "id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+  "name": "codebase:/fixtures/boab/examples/demo/app",
+  "scan_type": "codebase",
+  "status": "completed",
+  "target": "/fixtures/boab/examples/demo/app",
+  "config": {
+    "include": [],
+    "exclude": [],
+    "default_excludes": [
+      "node_modules",
+      "vendor",
+      ".venv",
+      "venv",
+      "target",
+      "dist",
+      "build",
+      ".git"
+    ]
+  },
+  "started_at": "2026-10-20T08:42:37.951237Z",
+  "completed_at": "2026-10-20T08:42:37.956061Z",
+  "findings": [
+    {
+      "id": "5a6653c0-a2a4-4196-8cf1-0d5b8588b861",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "29328fea-879f-4d88-8818-66f8260fa107",
+      "source_type": "file",
+      "source_location": "handshake.go:21",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "X25519",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 255,
+          "primitive": "key_agreement"
+        },
+        "language": "Go",
+        "match": "X25519",
+        "line": 21,
+        "snippet": "    return &tls.Config{\n        CurvePreferences: []tls.CurveID{tls.CurveP256, tls.X25519},\n        MinVersion:       tls.VersionTLS12,"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.954902Z"
+    },
+    {
+      "id": "635d3985-e333-4a15-aeb9-5efecd47279e",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "400f928e-d2d6-4edb-8be8-b885b4a76f78",
+      "source_type": "file",
+      "source_location": "handshake.go:4",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/ecdsa\"",
+        "line": 4,
+        "snippet": "import (\n    \"crypto/ecdsa\"\n    \"crypto/elliptic\""
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955951Z"
+    },
+    {
+      "id": "f10d30a0-3382-461f-a672-4b4585d29238",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "400f928e-d2d6-4edb-8be8-b885b4a76f78",
+      "source_type": "file",
+      "source_location": "handshake.go:5",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/elliptic\"",
+        "line": 5,
+        "snippet": "    \"crypto/ecdsa\"\n    \"crypto/elliptic\"\n    \"crypto/rand\""
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955953Z"
+    },
+    {
+      "id": "5a20cfeb-9481-4a4f-8ac4-24fb1bdadd10",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "400f928e-d2d6-4edb-8be8-b885b4a76f78",
+      "source_type": "file",
+      "source_location": "handshake.go:6",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/rand\"",
+        "line": 6,
+        "snippet": "    \"crypto/elliptic\"\n    \"crypto/rand\"\n    \"crypto/rsa\""
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955955Z"
+    },
+    {
+      "id": "6380c2fe-0a8a-4e84-a1a8-62eb074698f9",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "400f928e-d2d6-4edb-8be8-b885b4a76f78",
+      "source_type": "file",
+      "source_location": "handshake.go:7",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/rsa\"",
+        "line": 7,
+        "snippet": "    \"crypto/rand\"\n    \"crypto/rsa\"\n    \"crypto/tls\""
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955958Z"
+    },
+    {
+      "id": "39cf0185-c1db-46be-9dc2-28866a0589d3",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "400f928e-d2d6-4edb-8be8-b885b4a76f78",
+      "source_type": "file",
+      "source_location": "handshake.go:8",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/tls\"",
+        "line": 8,
+        "snippet": "    \"crypto/rsa\"\n    \"crypto/tls\"\n)"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.95596Z"
+    },
+    {
+      "id": "33281efb-4137-4af9-9438-5b841d5a0bd2",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "83ae8e69-878c-44e5-9585-5d6f302fc039",
+      "source_type": "file",
+      "source_location": "crypto.py:5",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "MD5",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Python",
+        "match": "MD5",
+        "line": 5,
+        "snippet": "\n# legacy MD5 fingerprint\ndef fingerprint(data: bytes) -> str:"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955992Z"
+    },
+    {
+      "id": "010b2fb5-ce81-4e99-99b3-44e925fd52ca",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "83ae8e69-878c-44e5-9585-5d6f302fc039",
+      "source_type": "file",
+      "source_location": "crypto.py:7",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "MD5",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Python",
+        "match": "md5",
+        "line": 7,
+        "snippet": "def fingerprint(data: bytes) -> str:\n    return hashlib.md5(data).hexdigest()\n"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955996Z"
+    },
+    {
+      "id": "cd0a62f5-17a1-4843-a8d9-6443c870a673",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "27b07729-f2d9-4cec-9f03-60968a47dec7",
+      "source_type": "file",
+      "source_location": "crypto.py:10",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-1",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Python",
+        "match": "sha1",
+        "line": 10,
+        "snippet": "def sha1_digest(data: bytes) -> str:\n    return hashlib.sha1(data).hexdigest()\n"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.955999Z"
+    },
+    {
+      "id": "367600a9-6365-4a5e-a13b-7c2f186b0d80",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "df75c9ce-82f7-4cdc-9517-582c097ec52e",
+      "source_type": "file",
+      "source_location": "crypto.py:2",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "pycryptodome",
+        "language": "Python",
+        "match": "from Crypto.",
+        "line": 2,
+        "snippet": "import hashlib\nfrom Crypto.PublicKey import RSA, DSA\nfrom Crypto.Cipher import DES, AES"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.956028Z"
+    },
+    {
+      "id": "c85018c9-6647-4f05-b088-59e9e96fd2d5",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "df75c9ce-82f7-4cdc-9517-582c097ec52e",
+      "source_type": "file",
+      "source_location": "crypto.py:3",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "pycryptodome",
+        "language": "Python",
+        "match": "from Crypto.",
+        "line": 3,
+        "snippet": "from Crypto.PublicKey import RSA, DSA\nfrom Crypto.Cipher import DES, AES\n"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.95603Z"
+    },
+    {
+      "id": "7635774c-72b7-4452-bb8c-219546406258",
+      "scan_id": "ae9f5cee-e49c-4aa1-b22a-f4bffc2c5bcb",
+      "crypto_asset_id": "b6f3bd51-6740-4d32-836f-54dbcf0225e7",
+      "source_type": "file",
+      "source_location": "crypto.py:1",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "hashlib",
+        "language": "Python",
+        "match": "import hashlib",
+        "line": 1,
+        "snippet": "import hashlib\nfrom Crypto.PublicKey import RSA, DSA"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.956041Z"
+    }
+  ],
+  "error_message": null
+}
