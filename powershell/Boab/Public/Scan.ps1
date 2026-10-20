@@ -82,7 +82,7 @@ function Start-BoabTlsScan {
     if ($Exclude) { $splat.Exclude = $Exclude }
     if ($Name) { $splat.Name = $Name }
     if ($PSCmdlet.ShouldProcess(($targets -join ', '), 'Scan TLS endpoints')) {
-        foreach ($scan in @(& $scanner @splat)) {
+        foreach ($scan in (& $scanner @splat)) {
             Complete-BoabScanImport -Workspace $ws -Scan $scan
         }
     }

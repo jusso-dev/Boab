@@ -932,7 +932,7 @@ function Invoke-BoabCertStoreScan {
         [string] $Name
     )
     try {
-        $root = Resolve-BoabCanonicalPath -Path $Path
+        $root = Resolve-BoabScanCanonicalPath -Path $Path
     }
     catch {
         throw "could not resolve cert store path ${Path}: $($_.Exception.Message)"
@@ -968,7 +968,7 @@ function Invoke-BoabCertStoreScan {
     }
     $supported = @('pem', 'crt', 'cer', 'der', 'p7b', 'p12', 'pfx', 'jks')
     foreach ($file in (Get-BoabWalkFiles -Root $root -Options $options)) {
-        $ext = Get-BoabPathExtension -Path $file
+        $ext = Get-BoabScanPathExtension -Path $file
         if ($null -eq $ext) { continue }
         $ext = $ext.ToLowerInvariant()
         if ($supported -cnotcontains $ext) { continue }

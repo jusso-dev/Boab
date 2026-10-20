@@ -6,7 +6,7 @@
 # serde renders. Timestamps are RFC 3339 strings formatted like
 # `time::serde::rfc3339` formats `OffsetDateTime::now_utc()`.
 
-function Format-BoabRfc3339 {
+function Format-BoabScanRfc3339 {
     <#
     .SYNOPSIS
     Format a UTC DateTime the way the Rust `time` crate's RFC 3339 formatter does.
@@ -40,7 +40,7 @@ function Get-BoabUtcNow {
     [CmdletBinding()]
     [OutputType([string])]
     param()
-    return Format-BoabRfc3339 -DateTime ([datetime]::UtcNow)
+    return Format-BoabScanRfc3339 -DateTime ([datetime]::UtcNow)
 }
 
 function New-BoabId {
@@ -121,7 +121,7 @@ function Get-BoabPathDisplay {
     return '\\?\' + $Path
 }
 
-function Resolve-BoabCanonicalPath {
+function Resolve-BoabScanCanonicalPath {
     <#
     .SYNOPSIS
     Port of `std::fs::canonicalize`: absolute path with every symlink resolved.
@@ -155,7 +155,7 @@ function Resolve-BoabCanonicalPath {
             if (-not [System.IO.Path]::IsPathRooted($target)) {
                 $target = [System.IO.Path]::Combine($current, $target)
             }
-            $current = Resolve-BoabCanonicalPath -Path $target -Depth ($Depth + 1)
+            $current = Resolve-BoabScanCanonicalPath -Path $target -Depth ($Depth + 1)
         }
         else {
             # Use the on-disk spelling where we can find it (case-insensitive filesystems).

@@ -170,6 +170,22 @@ Prebuilt binaries are published on the GitHub Releases page for
 Linux (x86_64 musl, aarch64 musl), macOS (x86_64, aarch64), and
 Windows (x86_64 MSVC) when releases are cut.
 
+### PowerShell module
+
+A PowerShell 7.2+ port lives in [`powershell/`](powershell/README.md). It
+reads and writes the same `.boab/` workspace and produces the same JSON,
+CycloneDX CBOM, Markdown and console output as the Rust binary:
+
+```powershell
+Import-Module ./powershell/Boab
+Invoke-Boab scan codebase ./services/payments   # same argv as `boab`
+pwsh ./powershell/boab.ps1 report --format md --output readiness.md
+```
+
+Idiomatic cmdlets (`Add-BoabSystem`, `Start-BoabTlsScan`, `New-BoabPlan`,
+`Export-BoabReport`, ...) are exported too. CI runs the module's Pester suite,
+including a diff against the Rust binary, on Linux, macOS and Windows.
+
 ## Quickstart
 
 ```sh

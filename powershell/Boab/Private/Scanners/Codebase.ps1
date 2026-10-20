@@ -638,12 +638,8 @@ function Get-BoabWalkFiles {
         catch {
             return
         }
-        $byName = [System.Collections.Generic.Dictionary[string, object]]::new([System.StringComparer]::Ordinal)
-        foreach ($i in $infos) { $byName[$i.Name] = $i }
-        $names = [string[]]@($byName.Keys)
-        [Array]::Sort($names, [System.StringComparer]::Ordinal)
-        foreach ($name in $names) {
-            $info = $byName[$name]
+        # Raw readdir order, unsorted, like the Rust `ignore` walker.
+        foreach ($info in $infos) {
             $kind = Get-BoabEntryKind -Info $info
             $isDir = $kind -eq 'dir'
             $hidden = Test-BoabHiddenEntry -Info $info
@@ -753,7 +749,7 @@ function Get-BoabCodebaseFileFindings {
     $out = [System.Collections.Generic.List[object]]::new()
     $rel = Get-BoabRelativePath -Root $Root -File $File
 
-    $ext = Get-BoabPathExtension -Path $File
+    $ext = Get-BoabScanPathExtension -Path $File
     if ($null -ne $ext) {
         $extLower = $ext.ToLowerInvariant()
         if ((Get-BoabCodebaseCertKeyExtensions) -ccontains $extLower) {
@@ -889,7 +885,7 @@ function Invoke-BoabCodebaseScan {
     if ($null -eq $Include) { $Include = @() }
     if ($null -eq $Exclude) { $Exclude = @() }
     try {
-        $root = Resolve-BoabCanonicalPath -Path $Path
+        $root = Resolve-BoabScanCanonicalPath -Path $Path
     }
     catch {
         throw "could not resolve scan path ${Path}: $($_.Exception.Message)"

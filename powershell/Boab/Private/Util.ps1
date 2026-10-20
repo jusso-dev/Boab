@@ -201,14 +201,14 @@ function ConvertFrom-BoabUuidText {
         $charText = [string]$ch
         if ([char]::IsHighSurrogate($ch) -and $i + 1 -lt $inner.Length) { $charText = $inner.Substring($i, 2); $cp = [char]::ConvertToUtf32($ch, $inner[$i + 1]) }
         if ($cp -gt 127) {
-            throw (New-BoabException ("invalid character: found ``{0}`` at {1}" -f $charText, ($byteIndex + $offset + 1)))
+            throw (New-BoabException ("invalid character: found ``{0}`` at {1}" -f $charText, $byteIndex))
         }
         elseif ($ch -eq '-') {
             if ($hyphenCount -lt 4) { $groupBounds[$hyphenCount] = $byteIndex }
             $hyphenCount++
         }
         elseif (-not ($charText -cmatch '^[0-9a-fA-F]$')) {
-            throw (New-BoabException ("invalid character: found ``{0}`` at {1}" -f $charText, ($byteIndex + $offset + 1)))
+            throw (New-BoabException ("invalid character: found ``{0}`` at {1}" -f $charText, $byteIndex))
         }
         $byteIndex += [System.Text.Encoding]::UTF8.GetByteCount($charText)
         $i += $charText.Length

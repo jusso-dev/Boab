@@ -151,6 +151,8 @@ function Invoke-BoabRunInventory {
     if ($null -eq $asset) { throw (New-BoabException ("no inventory entry with id {0}" -f $v.id)) }
     $sys = Find-BoabSystemById -Systems $systems -Id $asset.system_id
     $score = Get-BoabRiskScore -Asset $asset -System $sys -CurrentYear $year
+    # serde_json::json! goes through Value, which widens the f32 priority to f64.
+    $score.priority = [double]$score.priority
     Write-BoabStdout $Context (ConvertTo-BoabJson -InputObject ([ordered]@{ asset = $asset; score = $score }))
     0
 }
@@ -202,7 +204,8 @@ function Invoke-BoabRunScan {
             if ($null -ne $v.rate_limit) { $splat.RateLimit = $v.rate_limit }
             if ($v.exclude.Count -gt 0) { $splat.Exclude = [string[]]$v.exclude }
             if ($null -ne $v.name) { $splat.Name = $v.name }
-            $scans = @(& $scanner @splat)
+            # Invoke-BoabTlsScan emits its Scan[] as a single (non-unrolled) object; flatten it.
+            $scans = @(foreach ($s in (& $scanner @splat)) { $s })
             $count = 0
             foreach ($scan in $scans) {
                 $count = (Invoke-BoabPromotion -Workspace $ws -Scan $scan).Count

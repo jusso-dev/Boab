@@ -149,7 +149,7 @@ Describe 'clap-compatible argument parsing' {
     It 'prints top-level help and version' {
         $r = Invoke-BoabTest --help
         $r.ExitCode | Should -Be 0
-        $r.StdOut | Should -BeLike "PQC readiness CLI for ASD-aligned transition planning`n`nUsage: boab `[OPTIONS`] <COMMAND>`n*"
+        $r.StdOut.StartsWith("PQC readiness CLI for ASD-aligned transition planning`n`nUsage: boab [OPTIONS] <COMMAND>`n", [StringComparison]::Ordinal) | Should -BeTrue
         $r.StdOut | Should -Match '  -V, --version                Print version\n$'
         (Invoke-BoabTest -V).StdOut | Should -BeExactly "boab 0.1.0`n"
         (Invoke-BoabTest system add -V).StdOut | Should -BeExactly "boab-system-add 0.1.0`n"
@@ -180,11 +180,11 @@ Describe 'clap-compatible argument parsing' {
         @{ Name = 'extra positional'; Argv = @('init', 'extra'); Err = "error: unexpected argument 'extra' found`n`nUsage: boab init [OPTIONS]`n`nFor more information, try '--help'.`n" }
         @{ Name = 'negative number'; Argv = @('config', 'set', 'schema_version', '-1'); Err = "error: unexpected argument '-1' found`n`n  tip: to pass '-1' as a value, use '-- -1'`n`nUsage: boab config set [OPTIONS] <KEY> <VALUE>`n`nFor more information, try '--help'.`n" }
         @{ Name = 'negative option value'; Argv = @('inventory', 'list', '--tier', '-1'); Err = "error: unexpected argument '-1' found`n`nUsage: boab inventory list [OPTIONS]`n`nFor more information, try '--help'.`n" }
-        @{ Name = 'bad uuid'; Argv = @('system', 'delete', 'not-a-uuid'); Err = "error: invalid value 'not-a-uuid' for '<ID>': invalid character: found ``n`` at 1`n`nFor more information, try '--help'.`n" }
+        @{ Name = 'bad uuid'; Argv = @('system', 'delete', 'not-a-uuid'); Err = "error: invalid value 'not-a-uuid' for '<ID>': invalid character: found ``n`` at 0`n`nFor more information, try '--help'.`n" }
         @{ Name = 'short uuid'; Argv = @('system', 'delete', 'abc'); Err = "error: invalid value 'abc' for '<ID>': invalid length: expected length 32 for simple format, found 3`n`nFor more information, try '--help'.`n" }
         @{ Name = 'uuid group length'; Argv = @('system', 'delete', '336c086c-f5d0-4e01-854b-40dafc4f404'); Err = "error: invalid value '336c086c-f5d0-4e01-854b-40dafc4f404' for '<ID>': invalid group length in group 4: expected 12, found 11`n`nFor more information, try '--help'.`n" }
         @{ Name = 'uuid group count'; Argv = @('system', 'delete', '336c086c-f5d0-4e01-854b'); Err = "error: invalid value '336c086c-f5d0-4e01-854b' for '<ID>': invalid group count: expected 5, found 4`n`nFor more information, try '--help'.`n" }
-        @{ Name = 'uuid trailing char'; Argv = @('system', 'delete', '336c086c-f5d0-4e01-854b-40dafc4f404dx'); Err = "error: invalid value '336c086c-f5d0-4e01-854b-40dafc4f404dx' for '<ID>': invalid character: found ``x`` at 37`n`nFor more information, try '--help'.`n" }
+        @{ Name = 'uuid trailing char'; Argv = @('system', 'delete', '336c086c-f5d0-4e01-854b-40dafc4f404dx'); Err = "error: invalid value '336c086c-f5d0-4e01-854b-40dafc4f404dx' for '<ID>': invalid character: found ``x`` at 36`n`nFor more information, try '--help'.`n" }
         @{ Name = 'u16 range'; Argv = @('system', 'add', '--name', 'x', '--lifetime-years', '70000'); Err = "error: invalid value '70000' for '--lifetime-years <LIFETIME_YEARS>': 70000 is not in 0..=65535`n`nFor more information, try '--help'.`n" }
         @{ Name = 'u16 digits'; Argv = @('system', 'add', '--name', 'x', '--lifetime-years', 'abc'); Err = "error: invalid value 'abc' for '--lifetime-years <LIFETIME_YEARS>': invalid digit found in string`n`nFor more information, try '--help'.`n" }
         @{ Name = 'u8 range'; Argv = @('inventory', 'list', '--tier', '300'); Err = "error: invalid value '300' for '--tier <TIER>': 300 is not in 0..=255`n`nFor more information, try '--help'.`n" }

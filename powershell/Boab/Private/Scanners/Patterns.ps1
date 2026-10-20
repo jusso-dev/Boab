@@ -81,7 +81,7 @@ function Get-BoabLanguageTable {
     }
 }
 
-function Get-BoabPathExtension {
+function Get-BoabScanPathExtension {
     <#
     .SYNOPSIS
     Port of Rust's `Path::extension()` (not .NET's GetExtension).
@@ -110,7 +110,7 @@ function Get-BoabLanguage {
     [CmdletBinding()]
     [OutputType([string])]
     param([Parameter(Mandatory)] [string] $Path)
-    $ext = Get-BoabPathExtension -Path $Path
+    $ext = Get-BoabScanPathExtension -Path $Path
     if ($null -eq $ext) { return 'Generic' }
     $lower = $ext.ToLowerInvariant()
     $table = Get-BoabLanguageTable

@@ -235,9 +235,9 @@ Describe 'Scan model' {
 
     It 'formats timestamps like time::serde::rfc3339' {
         $dt = [datetime]::new(2026, 10, 20, 8, 16, 30, [System.DateTimeKind]::Utc).AddTicks(7153300)
-        Format-BoabRfc3339 -DateTime $dt | Should -BeExactly '2026-10-20T08:16:30.71533Z'
-        Format-BoabRfc3339 -DateTime ([datetime]::new(2026, 1, 2, 3, 4, 5, [System.DateTimeKind]::Utc)) | Should -BeExactly '2026-01-02T03:04:05Z'
-        Format-BoabRfc3339 -DateTime ([datetime]::new(2026, 1, 2, 3, 4, 5, [System.DateTimeKind]::Utc).AddTicks(1)) | Should -BeExactly '2026-01-02T03:04:05.0000001Z'
+        Format-BoabScanRfc3339 -DateTime $dt | Should -BeExactly '2026-10-20T08:16:30.71533Z'
+        Format-BoabScanRfc3339 -DateTime ([datetime]::new(2026, 1, 2, 3, 4, 5, [System.DateTimeKind]::Utc)) | Should -BeExactly '2026-01-02T03:04:05Z'
+        Format-BoabScanRfc3339 -DateTime ([datetime]::new(2026, 1, 2, 3, 4, 5, [System.DateTimeKind]::Utc).AddTicks(1)) | Should -BeExactly '2026-01-02T03:04:05.0000001Z'
         Get-BoabUtcNow | Should -Match '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d*[1-9])?Z$'
     }
 }
@@ -259,11 +259,11 @@ Describe 'Pattern packs' {
     }
 
     It 'implements Path::extension semantics' {
-        Get-BoabPathExtension -Path '.gitignore' | Should -BeNullOrEmpty
-        Get-BoabPathExtension -Path 'noext' | Should -BeNullOrEmpty
-        Get-BoabPathExtension -Path 'trail.' | Should -BeExactly ''
-        Get-BoabPathExtension -Path 'a.b.C' | Should -BeExactly 'C'
-        Get-BoabPathExtension -Path '.env.local' | Should -BeExactly 'local'
+        Get-BoabScanPathExtension -Path '.gitignore' | Should -BeNullOrEmpty
+        Get-BoabScanPathExtension -Path 'noext' | Should -BeNullOrEmpty
+        Get-BoabScanPathExtension -Path 'trail.' | Should -BeExactly ''
+        Get-BoabScanPathExtension -Path 'a.b.C' | Should -BeExactly 'C'
+        Get-BoabScanPathExtension -Path '.env.local' | Should -BeExactly 'local'
     }
 }
 
@@ -382,7 +382,7 @@ Describe 'Codebase scanner: ported Rust unit tests' {
         $scan.scan_type | Should -BeExactly 'codebase'
         $scan.status | Should -BeExactly 'completed'
         $scan.completed_at | Should -Not -BeNullOrEmpty
-        $scan.target | Should -BeExactly (Get-BoabPathDisplay -Path (Resolve-BoabCanonicalPath -Path $dir))
+        $scan.target | Should -BeExactly (Get-BoabPathDisplay -Path (Resolve-BoabScanCanonicalPath -Path $dir))
         (ConvertTo-TestJson $scan.config) | Should -BeExactly '{"include":[],"exclude":[],"default_excludes":["node_modules","vendor",".venv","venv","target","dist","build",".git"]}'
     }
 }

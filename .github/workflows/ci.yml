@@ -29,6 +29,17 @@ jobs:
         run: cargo test --all-features
       - name: Build release
         run: cargo build --release
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module Pester -MinimumVersion 5.5 -Scope CurrentUser -Force -SkipPublisherCheck
+      - name: PowerShell module tests
+        shell: pwsh
+        run: |
+          $c = New-PesterConfiguration
+          $c.Run.Path = 'powershell/tests'
+          $c.Run.Exit = $true
+          $c.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $c
 
   audit:
     name: Cargo audit

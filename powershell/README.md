@@ -99,6 +99,23 @@ The scanner implementations (`Invoke-BoabCodebaseScan`, `Invoke-BoabTlsScan`,
 a scanner (dedup, storage, scoring, plans, reports, console output) is
 implemented in this module.
 
+Scanner parity notes:
+
+* **Codebase** walks the tree with its own port of the `ignore` crate's rules
+  (`.gitignore` in every ancestor, `.ignore`, `.git/info/exclude`, the global
+  excludes file, hidden files, override globs translated like `globset`) and
+  visits entries in raw directory order, like the Rust walker.
+* **TLS** uses a raw TLS client over `TcpClient` rather than `SslStream`, so it
+  can offer exactly the cipher suites, groups and signature schemes rustls/ring
+  offers and read the negotiated key-exchange group. Trust decisions use the OS
+  trust store plus webpki-style checks, so rare chains (cross-signed roots,
+  platform-specific policies) can pass or fail differently from webpki with the
+  Mozilla roots. `CertificateVerify`/`Finished` are not verified.
+* **Certificate stores** parse X.509 with a small DER reader that formats names,
+  algorithms and dates like `x509-parser`; PKCS#12 entries are chosen the way
+  `p12-keystore` chooses them. The DER reader is more lenient than
+  `x509-parser`, so a malformed certificate Rust skips may still be reported.
+
 ## Tests
 
 ```powershell

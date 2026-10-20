@@ -208,7 +208,7 @@ Describe 'Golden parity with the Rust scoring engine' {
             foreach ($row in $Table) {
                 $p = Get-BoabPriority $row[0] $row[1] $row[2] $row[3] $row[4]
                 $t = Get-BoabTriageTier -Priority $p -MigDiff $row[4] -AlgoVuln $row[0]
-                $expectedText = Format-BoabF64 ([double]$row[5])
+                $expectedText = Format-BoabF32 ([single]$row[5])
                 if ((Format-BoabF32 $p) -cne $expectedText -or [single]$row[5] -ne $p -or $t -ne $row[6]) {
                     $bad.Add(('{0}: got {1}/{2}' -f ($row -join ','), (Format-BoabF32 $p), $t))
                 }
@@ -242,6 +242,8 @@ Describe 'Golden parity with the Rust scoring engine' {
                 $asset = ConvertTo-BoabCryptoAssetRecord -InputObject $c.asset
                 $sys = if ($null -ne $c.system) { ConvertTo-BoabSystemRecord -InputObject $c.system } else { $null }
                 $score = Get-BoabRiskScore -Asset $asset -System $sys -CurrentYear 2026
+                # The golden fixture was written through serde_json::json!, which widens f32 to f64.
+                $score.priority = [double]$score.priority
                 $expected = ConvertTo-BoabJson -InputObject $c.score
                 $got = ConvertTo-BoabJson -InputObject $score
                 if ($got -cne $expected) { $bad.Add("case ${i}: $got <> $expected") }
