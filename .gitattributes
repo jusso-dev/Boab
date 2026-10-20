@@ -1,0 +1,3 @@
+# Keep LF line endings on every platform: the Rust binary embeds data files
+# with include_str! and the PowerShell tests compare outputs byte-for-byte.
+* text=auto eol=lf

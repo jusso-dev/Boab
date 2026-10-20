@@ -42,7 +42,10 @@ BeforeAll {
         $outTask = $p.StandardOutput.ReadToEndAsync()
         $errTask = $p.StandardError.ReadToEndAsync()
         $p.WaitForExit()
-        [pscustomobject]@{ ExitCode = $p.ExitCode; StdOut = $outTask.Result; StdErr = $errTask.Result }
+        # clap prints the executable file name in usage lines (`boab.exe` on Windows).
+        $out = $outTask.Result -replace '\bboab\.exe\b', 'boab'
+        $err = $errTask.Result -replace '\bboab\.exe\b', 'boab'
+        [pscustomobject]@{ ExitCode = $p.ExitCode; StdOut = $out; StdErr = $err }
     }
 
     function script:Get-SideToken {
