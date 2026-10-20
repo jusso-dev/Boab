@@ -15,6 +15,7 @@ Commands:
   plan       Generate and inspect transition plans
   vendor     Inspect the bundled vendor PQC registry and customer overrides
   report     Export the workspace state as JSON, CycloneDX 1.6 CBOM, or Markdown
+  push       Upload a CycloneDX CBOM to an HTTPS endpoint you configure
   config     Get or set workspace configuration values
   help       Print this message or the help of the given subcommand(s)
 
@@ -521,14 +522,86 @@ Export the workspace state as JSON, CycloneDX 1.6 CBOM, or Markdown
 Usage: boab report [OPTIONS] --format <FORMAT>
 
 Options:
-      --format <FORMAT>        Output format: json, cbom, or md
-      --workspace <WORKSPACE>  Workspace root directory (default: current directory) [default: .]
-  -o, --output <OUTPUT>        Output path. Defaults to .boab/reports/
-      --verbose                Increase log verbosity to DEBUG
-      --quiet                  Reduce log verbosity to ERROR
-      --no-progress            Disable progress bars and spinners
-  -h, --help                   Print help
-  -V, --version                Print version
+      --format <FORMAT>
+          Output format: json, cbom, or md
+      --workspace <WORKSPACE>
+          Workspace root directory (default: current directory) [default: .]
+  -o, --output <OUTPUT>
+          Output path. Defaults to .boab/reports/
+      --verbose
+          Increase log verbosity to DEBUG
+      --push
+          After writing a CBOM, push it to --url (requires --format cbom)
+      --quiet
+          Reduce log verbosity to ERROR
+      --no-progress
+          Disable progress bars and spinners
+      --url <URL>
+          Endpoint to POST the CBOM to. Nothing is sent unless a URL is set [env: BOAB_PUSH_URL]
+      --token <TOKEN>
+          Bearer token or API key for the Authorization header. Prefer BOAB_PUSH_TOKEN [env:
+          BOAB_PUSH_TOKEN]
+      --header <KEY=VALUE>
+          Extra request header as key=value. Repeatable
+      --run-id <ID>
+          Run identifier sent in the X-Boab-Run-Id header [env: BOAB_PUSH_RUN_ID]
+      --insecure
+          Allow plain http:// URLs
+      --connect-timeout-seconds <CONNECT_TIMEOUT_SECONDS>
+          Seconds allowed to connect (and complete the TLS handshake) [default: 10]
+      --push-timeout-seconds <PUSH_TIMEOUT_SECONDS>
+          Seconds allowed for each attempt, from connect to full response [default: 60]
+      --retries <RETRIES>
+          Retries after a network error, timeout, or 5xx response [default: 3]
+      --retry-delay-ms <RETRY_DELAY_MS>
+          Delay before the first retry in milliseconds; doubles on each retry [default: 1000]
+  -h, --help
+          Print help
+  -V, --version
+          Print version
+'@
+    }
+    'push' = @{
+        Usage = 'boab push [OPTIONS]'
+        Help  = @'
+Upload a CycloneDX CBOM to an HTTPS endpoint you configure
+
+Usage: boab push [OPTIONS]
+
+Options:
+  -f, --file <FILE>
+          CBOM to upload, or `-` for stdin. Defaults to .boab/reports/bom.cdx.json
+      --workspace <WORKSPACE>
+          Workspace root directory (default: current directory) [default: .]
+      --url <URL>
+          Endpoint to POST the CBOM to. Nothing is sent unless a URL is set [env: BOAB_PUSH_URL]
+      --verbose
+          Increase log verbosity to DEBUG
+      --quiet
+          Reduce log verbosity to ERROR
+      --token <TOKEN>
+          Bearer token or API key for the Authorization header. Prefer BOAB_PUSH_TOKEN [env:
+          BOAB_PUSH_TOKEN]
+      --header <KEY=VALUE>
+          Extra request header as key=value. Repeatable
+      --no-progress
+          Disable progress bars and spinners
+      --run-id <ID>
+          Run identifier sent in the X-Boab-Run-Id header [env: BOAB_PUSH_RUN_ID]
+      --insecure
+          Allow plain http:// URLs
+      --connect-timeout-seconds <CONNECT_TIMEOUT_SECONDS>
+          Seconds allowed to connect (and complete the TLS handshake) [default: 10]
+      --push-timeout-seconds <PUSH_TIMEOUT_SECONDS>
+          Seconds allowed for each attempt, from connect to full response [default: 60]
+      --retries <RETRIES>
+          Retries after a network error, timeout, or 5xx response [default: 3]
+      --retry-delay-ms <RETRY_DELAY_MS>
+          Delay before the first retry in milliseconds; doubles on each retry [default: 1000]
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 '@
     }
     'config' = @{

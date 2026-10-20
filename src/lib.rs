@@ -11,6 +11,7 @@ pub mod config;
 pub mod dedup;
 pub mod model;
 pub mod plan;
+pub mod push;
 pub mod report;
 pub mod scanners;
 pub mod scoring;

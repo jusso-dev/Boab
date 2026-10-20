@@ -5,7 +5,8 @@ exported readiness report. All commands assume you have run `cargo install
 boab` or downloaded a Boab binary from the GitHub Releases page.
 
 Boab is air-gapped by default. The only outbound network connections it
-makes are TLS handshakes against the targets you supply to `boab scan tls`.
+makes are TLS handshakes against the targets you supply to `boab scan tls`,
+and the opt-in `boab push` to a URL you configure.
 
 ## 1. Initialise a workspace
 
@@ -155,10 +156,16 @@ The three formats:
 
 Defaults land in `.boab/reports/` if `--output` is omitted.
 
+To send the CBOM to a collection or evidence system from CI or on a
+schedule, use `boab push` or `boab report --format cbom --push`. See
+[push.md](./push.md) for configuration, the request format and a CI
+example.
+
 ## Air-gapped operation
 
-Boab makes no outbound connections except for `boab scan tls`. If you
-want to enforce that, leave `scanner.air_gapped = true` in `.boab/config.toml`
+Boab makes no outbound connections except for `boab scan tls` and
+`boab push`, which only runs when you set `--url` or `BOAB_PUSH_URL`. If
+you want to enforce that, leave `scanner.air_gapped = true` in `.boab/config.toml`
 (the default) which also blocks `--probe-hsts`.
 
 ## Exit codes
