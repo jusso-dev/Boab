@@ -2,7 +2,7 @@
 name = "boab"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.83"
+rust-version = "1.89"
 authors = ["Boab contributors"]
 license = "MIT OR Apache-2.0"
 description = "PQC readiness command-line tool that helps Australian organisations meet ASD post-quantum cryptography transition obligations."
@@ -45,11 +45,11 @@ anyhow = "1"
 thiserror = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "ansi"] }
-indicatif = "0.17"
+indicatif = "0.18"
 comfy-table = "7.1"
 time = { version = "0.3", features = ["serde", "serde-human-readable", "formatting", "parsing", "macros", "local-offset"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-gix = { version = "0.66", default-features = false, features = ["blocking-network-client", "blocking-http-transport-reqwest-rust-tls", "worktree-mutation"], optional = true }
+gix = { version = "0.89", default-features = false, features = ["sha1", "blocking-network-client", "blocking-http-transport-reqwest-rust-tls", "worktree-mutation"], optional = true }
 p12-keystore = { version = "0.1", optional = true }
 base64 = "0.22"
 hex = "0.4"

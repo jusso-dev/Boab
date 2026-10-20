@@ -178,7 +178,13 @@ async fn handshake(
         TlsVersionPolicy::Tls12Only => &[&rustls::version::TLS12],
     };
 
-    let mut cfg = ClientConfig::builder_with_protocol_versions(versions)
+    // Pin the ring provider explicitly. Transitive deps (reqwest via gix) also
+    // enable rustls' aws-lc-rs feature, so relying on the process default
+    // would panic, and would change the offered suites / key exchange groups.
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let mut cfg = ClientConfig::builder_with_provider(provider)
+        .with_protocol_versions(versions)
+        .context("configure TLS protocol versions")?
         .with_root_certificates(root_store)
         .with_no_client_auth();
     cfg.enable_sni = true;
