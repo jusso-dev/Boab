@@ -1,0 +1,16 @@
+[package]
+name = "boab-golden-gen"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Generates golden fixtures from the Rust boab library for the PowerShell port's Pester tests."
+
+# Stand-alone: not part of any parent workspace.
+[workspace]
+
+[dependencies]
+boab = { path = "../../.." }
+anyhow = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+time = { version = "0.3", features = ["macros"] }
+uuid = { version = "1", features = ["v4", "serde"] }

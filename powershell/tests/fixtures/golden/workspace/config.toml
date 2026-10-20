@@ -1,0 +1,11 @@
+# Boab configuration
+
+schema_version = 1
+
+[scanner]
+default_rate_limit = "1/second"
+tls_timeout_seconds = 10
+air_gapped = true
+
+[reporting]
+default_format = "md"

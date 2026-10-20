@@ -1,0 +1,238 @@
+{
+  "entries": [
+    {
+      "vendor": "Microsoft",
+      "product": "Windows",
+      "pqc_status": "unknown",
+      "target_date": "2026 onwards",
+      "source_url": "https://www.microsoft.com/en-us/security/blog/topic/pqc/",
+      "source_note": "Symcrypt PQC primitives in preview; production rollout dates not committed.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Microsoft",
+      "product": "Azure",
+      "pqc_status": "unknown",
+      "target_date": "2026 onwards",
+      "source_url": "https://learn.microsoft.com/en-us/azure/security/fundamentals/post-quantum-cryptography",
+      "source_note": "PQC TLS support in private preview at time of writing.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Microsoft",
+      "product": "M365",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No public commitment to PQC migration timeline for M365 services.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "AWS",
+      "product": "KMS",
+      "pqc_status": "hybrid",
+      "target_date": "2024 (hybrid TLS in s2n)",
+      "source_url": "https://docs.aws.amazon.com/kms/latest/developerguide/pqtls.html",
+      "source_note": "Hybrid post-quantum TLS available for KMS API calls via the AWS SDKs.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "AWS",
+      "product": "ACM",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No commitment to issuing PQC certificates published.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "AWS",
+      "product": "TLS",
+      "pqc_status": "hybrid",
+      "target_date": "2024 (s2n-tls)",
+      "source_url": "https://github.com/aws/s2n-tls",
+      "source_note": "s2n-tls supports hybrid key exchange.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Google",
+      "product": "Cloud",
+      "pqc_status": "hybrid",
+      "target_date": "2024 (BoringSSL)",
+      "source_url": "https://cloud.google.com/blog/products/identity-security/google-cloud-roadmap-for-post-quantum-cryptography",
+      "source_note": "X25519MLKEM768 enabled in Google services TLS.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Oracle",
+      "product": "Database",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No published PQC roadmap for Oracle Database.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Oracle",
+      "product": "WebLogic",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No published PQC roadmap.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Cisco",
+      "product": "IOS XE",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": "https://www.cisco.com/c/en/us/about/trust-center/post-quantum-cryptography.html",
+      "source_note": "Cisco has published intent to support PQC; product-by-product dates not announced.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Cisco",
+      "product": "ASA",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": "https://www.cisco.com/c/en/us/about/trust-center/post-quantum-cryptography.html",
+      "source_note": "No product-specific PQC commitment.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Cisco",
+      "product": "Firepower",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": "https://www.cisco.com/c/en/us/about/trust-center/post-quantum-cryptography.html",
+      "source_note": "No product-specific PQC commitment.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Palo Alto Networks",
+      "product": "PAN-OS",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No published PQC roadmap.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Fortinet",
+      "product": "FortiOS",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No published PQC roadmap.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "F5",
+      "product": "BIG-IP",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "Limited public PQC information.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Citrix",
+      "product": "NetScaler",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No published PQC roadmap.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Apache",
+      "product": "httpd",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "Inherits PQC support from the linked TLS library (e.g. OpenSSL).",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Apache",
+      "product": "Tomcat",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "Inherits PQC support from the linked TLS library and JVM.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "nginx",
+      "product": "nginx",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "Inherits PQC support from the linked TLS library.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "OpenSSL",
+      "product": "OpenSSL",
+      "pqc_status": "hybrid",
+      "target_date": "3.5 (planned)",
+      "source_url": "https://github.com/openssl/openssl",
+      "source_note": "OpenSSL has shipped ML-KEM/ML-DSA in 3.5 series; hybrid groups available via providers.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "BoringSSL",
+      "product": "BoringSSL",
+      "pqc_status": "hybrid",
+      "target_date": "2024",
+      "source_url": "https://boringssl.googlesource.com/boringssl/",
+      "source_note": "X25519MLKEM768 hybrid group implemented.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "BouncyCastle",
+      "product": "Java",
+      "pqc_status": "resistant",
+      "target_date": "1.78+",
+      "source_url": "https://www.bouncycastle.org/latest_releases.html",
+      "source_note": "ML-KEM/ML-DSA/SLH-DSA implementations available.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "HashiCorp",
+      "product": "Vault",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No public PQC roadmap committed.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "CyberArk",
+      "product": "PAM",
+      "pqc_status": "unknown",
+      "target_date": null,
+      "source_url": null,
+      "source_note": "No published PQC roadmap.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Thales",
+      "product": "Luna HSM",
+      "pqc_status": "hybrid",
+      "target_date": "Firmware roadmap",
+      "source_url": "https://cpl.thalesgroup.com/encryption/hardware-security-modules/luna-hsms",
+      "source_note": "Luna firmware roadmap includes PQC; specific FIPS-validated dates are vendor-confidential.",
+      "last_verified_at": null
+    },
+    {
+      "vendor": "Entrust",
+      "product": "nShield",
+      "pqc_status": "hybrid",
+      "target_date": "Firmware roadmap",
+      "source_url": "https://www.entrust.com/products/hsm/nshield",
+      "source_note": "PQC firmware updates announced; product-specific availability varies.",
+      "last_verified_at": null
+    }
+  ]
+}

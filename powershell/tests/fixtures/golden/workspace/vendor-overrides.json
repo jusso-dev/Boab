@@ -1,0 +1,22 @@
+{
+  "entries": [
+    {
+      "vendor": "Microsoft",
+      "product": "Azure",
+      "pqc_status": "resistant",
+      "target_date": "2026-Q4",
+      "source_url": null,
+      "source_note": "override",
+      "last_verified_at": "2026-10-20T08:45:18.92962Z"
+    },
+    {
+      "vendor": "Acme",
+      "product": "Widget",
+      "pqc_status": "hybrid",
+      "target_date": null,
+      "source_url": "https://example.com",
+      "source_note": null,
+      "last_verified_at": null
+    }
+  ]
+}

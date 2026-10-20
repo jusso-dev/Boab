@@ -1,0 +1,1191 @@
+{
+  "id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+  "name": "codebase:/fixtures/boab/tests/fixtures/codebase",
+  "scan_type": "codebase",
+  "status": "completed",
+  "target": "/fixtures/boab/tests/fixtures/codebase",
+  "config": {
+    "include": [],
+    "exclude": [],
+    "default_excludes": [
+      "node_modules",
+      "vendor",
+      ".venv",
+      "venv",
+      "target",
+      "dist",
+      "build",
+      ".git"
+    ]
+  },
+  "started_at": "2026-10-20T08:42:37.93661Z",
+  "completed_at": "2026-10-20T08:42:37.94295Z",
+  "findings": [
+    {
+      "id": "4c72d241-2d72-4623-a323-87d5ce034a1a",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "7bfce873-1955-4282-93e3-4b3dbf3da080",
+      "source_type": "file",
+      "source_location": "go/example.go:10",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ECDSA-P-256",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 256,
+          "primitive": "signature"
+        },
+        "language": "Go",
+        "match": "ECDSA-P-256",
+        "line": 10,
+        "snippet": "// Cipher suites observed: AES-256-GCM, ChaCha20-Poly1305.\n// Curves: ECDSA-P-256 today, target Kyber768 hybrid soon.\n// X25519 and Ed25519 remain in use for short-term keys."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941056Z"
+    },
+    {
+      "id": "92b53a4d-78aa-4b64-b153-788e727086d7",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "344e5fbf-1171-43de-88fc-5ccfccf0d80c",
+      "source_type": "file",
+      "source_location": "go/example.go:11",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "Ed25519",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 255,
+          "primitive": "signature"
+        },
+        "language": "Go",
+        "match": "Ed25519",
+        "line": 11,
+        "snippet": "// Curves: ECDSA-P-256 today, target Kyber768 hybrid soon.\n// X25519 and Ed25519 remain in use for short-term keys.\nconst Note = \"RC4 must not be used\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941061Z"
+    },
+    {
+      "id": "52002d16-8865-489d-bf24-f8cc8e12cc76",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "d35a8eab-eee5-4542-9cef-f3256ca0a6b1",
+      "source_type": "file",
+      "source_location": "go/example.go:11",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "X25519",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 255,
+          "primitive": "key_agreement"
+        },
+        "language": "Go",
+        "match": "X25519",
+        "line": 11,
+        "snippet": "// Curves: ECDSA-P-256 today, target Kyber768 hybrid soon.\n// X25519 and Ed25519 remain in use for short-term keys.\nconst Note = \"RC4 must not be used\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941064Z"
+    },
+    {
+      "id": "98db162a-589a-4d7e-a977-0e54ea475207",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "3facf76b-bfd7-4447-a747-da049f6a0a56",
+      "source_type": "file",
+      "source_location": "go/example.go:9",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "AES-256",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "key_size_bits": 256,
+          "primitive": "block_cipher"
+        },
+        "language": "Go",
+        "match": "AES-256-GCM",
+        "line": 9,
+        "snippet": "\n// Cipher suites observed: AES-256-GCM, ChaCha20-Poly1305.\n// Curves: ECDSA-P-256 today, target Kyber768 hybrid soon."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941099Z"
+    },
+    {
+      "id": "333ca537-8919-4cbc-80ab-9e2d6bd07cf9",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "ba69441d-ec19-4985-98db-161d9b26cfe3",
+      "source_type": "file",
+      "source_location": "go/example.go:6",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ChaCha20-Poly1305",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "key_size_bits": 256,
+          "primitive": "stream_cipher"
+        },
+        "language": "Go",
+        "match": "chacha20poly1305",
+        "line": 6,
+        "snippet": "\t\"crypto/sha256\"\n\t\"golang.org/x/crypto/chacha20poly1305\"\n)"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941131Z"
+    },
+    {
+      "id": "9b330d71-5602-4f42-ac66-0aaad5524bb5",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "ba69441d-ec19-4985-98db-161d9b26cfe3",
+      "source_type": "file",
+      "source_location": "go/example.go:9",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ChaCha20-Poly1305",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "key_size_bits": 256,
+          "primitive": "stream_cipher"
+        },
+        "language": "Go",
+        "match": "ChaCha20-Poly1305",
+        "line": 9,
+        "snippet": "\n// Cipher suites observed: AES-256-GCM, ChaCha20-Poly1305.\n// Curves: ECDSA-P-256 today, target Kyber768 hybrid soon."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941141Z"
+    },
+    {
+      "id": "c50b4ebd-93f0-482d-bc9e-fd63f6ec3349",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "bf9f9819-bcca-4ff4-9e11-b9a7d5c89c19",
+      "source_type": "file",
+      "source_location": "go/example.go:5",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-256",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Go",
+        "match": "sha256",
+        "line": 5,
+        "snippet": "\t\"crypto/ecdsa\"\n\t\"crypto/sha256\"\n\t\"golang.org/x/crypto/chacha20poly1305\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941145Z"
+    },
+    {
+      "id": "941a4562-fe71-4a9f-b9db-a6e6b51617f7",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "3f17fb7a-d5c3-41af-845c-cccf035ed0b0",
+      "source_type": "file",
+      "source_location": "go/example.go:10",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "Kyber",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "kem"
+        },
+        "language": "Go",
+        "match": "Kyber768",
+        "line": 10,
+        "snippet": "// Cipher suites observed: AES-256-GCM, ChaCha20-Poly1305.\n// Curves: ECDSA-P-256 today, target Kyber768 hybrid soon.\n// X25519 and Ed25519 remain in use for short-term keys."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941152Z"
+    },
+    {
+      "id": "03ed3729-64b3-4f3a-bab1-1c7f0e7c9645",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "506e9c4e-ecd1-4eb7-82b9-930b64908594",
+      "source_type": "file",
+      "source_location": "go/example.go:12",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RC4",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "stream_cipher"
+        },
+        "language": "Go",
+        "match": "RC4",
+        "line": 12,
+        "snippet": "// X25519 and Ed25519 remain in use for short-term keys.\nconst Note = \"RC4 must not be used\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.941158Z"
+    },
+    {
+      "id": "c18a468c-23f9-4fa2-bcb2-eea677bb6576",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "71b6741a-d272-401b-a0c0-809aa8e7dbea",
+      "source_type": "file",
+      "source_location": "go/example.go:4",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/ecdsa\"",
+        "line": 4,
+        "snippet": "import (\n\t\"crypto/ecdsa\"\n\t\"crypto/sha256\""
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942238Z"
+    },
+    {
+      "id": "66cf2749-5ce3-4454-9bc7-a18b5f4ae50a",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "71b6741a-d272-401b-a0c0-809aa8e7dbea",
+      "source_type": "file",
+      "source_location": "go/example.go:5",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "stdlib crypto",
+        "language": "Go",
+        "match": "\"crypto/sha256\"",
+        "line": 5,
+        "snippet": "\t\"crypto/ecdsa\"\n\t\"crypto/sha256\"\n\t\"golang.org/x/crypto/chacha20poly1305\""
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.94224Z"
+    },
+    {
+      "id": "5dba8ee8-0880-47b6-95b3-23cc75005925",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "de899126-c034-4371-913b-e99a0f25811d",
+      "source_type": "file",
+      "source_location": "go/example.go:6",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "x/crypto",
+        "language": "Go",
+        "match": "\"golang.org/x/crypto/chacha20poly1305\"",
+        "line": 6,
+        "snippet": "\t\"crypto/sha256\"\n\t\"golang.org/x/crypto/chacha20poly1305\"\n)"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942242Z"
+    },
+    {
+      "id": "12f27b26-c17b-483a-bac3-feb7ab20a6e3",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "3696e9a4-8011-48fa-baf6-b75b4961908d",
+      "source_type": "file",
+      "source_location": "python/example.py:5",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-1",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Python",
+        "match": "SHA-1",
+        "line": 5,
+        "snippet": "\n# SHA-1 fingerprints are deprecated.\nH = \"SHA-1\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942322Z"
+    },
+    {
+      "id": "13445770-cf29-44eb-a313-83d7d94acea2",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "3696e9a4-8011-48fa-baf6-b75b4961908d",
+      "source_type": "file",
+      "source_location": "python/example.py:6",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-1",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Python",
+        "match": "SHA-1",
+        "line": 6,
+        "snippet": "# SHA-1 fingerprints are deprecated.\nH = \"SHA-1\"\n# AES-128 GCM session keys."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942325Z"
+    },
+    {
+      "id": "5ba52245-9e68-4d0a-b811-4b15d1b9bcba",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "c5819788-48a3-4578-8897-b357364bbd6f",
+      "source_type": "file",
+      "source_location": "python/example.py:12",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RSA",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 1024,
+          "primitive": "signature"
+        },
+        "language": "Python",
+        "match": "RSA-1024",
+        "line": 12,
+        "snippet": "# Legacy.\nLEGACY_RSA = \"RSA-1024\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942329Z"
+    },
+    {
+      "id": "1245900d-e25e-4848-9a6c-e256ada5c96f",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "a7a3db62-316d-4221-acfc-c504104e048f",
+      "source_type": "file",
+      "source_location": "python/example.py:7",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "AES-128",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "key_size_bits": 128,
+          "primitive": "block_cipher"
+        },
+        "language": "Python",
+        "match": "AES-128",
+        "line": 7,
+        "snippet": "H = \"SHA-1\"\n# AES-128 GCM session keys.\nCIPHER = \"AES-128-GCM\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942342Z"
+    },
+    {
+      "id": "b810e4d8-9eb4-4101-930f-362fc461d7c9",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "a7a3db62-316d-4221-acfc-c504104e048f",
+      "source_type": "file",
+      "source_location": "python/example.py:8",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "AES-128",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "key_size_bits": 128,
+          "primitive": "block_cipher"
+        },
+        "language": "Python",
+        "match": "AES-128-GCM",
+        "line": 8,
+        "snippet": "# AES-128 GCM session keys.\nCIPHER = \"AES-128-GCM\"\n# Plan: ML-DSA-65 signatures."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.94235Z"
+    },
+    {
+      "id": "4a18ba30-c7cc-4341-9e1b-680a6462f3d1",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "86e40244-b68e-4f45-9a4b-996df0c7caef",
+      "source_type": "file",
+      "source_location": "python/example.py:9",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ML-DSA",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "signature"
+        },
+        "language": "Python",
+        "match": "ML-DSA-65",
+        "line": 9,
+        "snippet": "CIPHER = \"AES-128-GCM\"\n# Plan: ML-DSA-65 signatures.\nSIG = \"ML-DSA-65\""
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942355Z"
+    },
+    {
+      "id": "bffc0a15-3d2a-409f-aff1-5871f9e5f475",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "86e40244-b68e-4f45-9a4b-996df0c7caef",
+      "source_type": "file",
+      "source_location": "python/example.py:10",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ML-DSA",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "signature"
+        },
+        "language": "Python",
+        "match": "ML-DSA-65",
+        "line": 10,
+        "snippet": "# Plan: ML-DSA-65 signatures.\nSIG = \"ML-DSA-65\"\n# Legacy."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942358Z"
+    },
+    {
+      "id": "cbf03bf1-94b3-4ad1-918a-e9c03d554ae8",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "39927877-97dc-483a-a6d0-4bf2b6ba89c6",
+      "source_type": "file",
+      "source_location": "python/example.py:1",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "cryptography",
+        "language": "Python",
+        "match": "from cryptography.",
+        "line": 1,
+        "snippet": "from cryptography.hazmat.primitives import hashes\nimport hashlib"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942369Z"
+    },
+    {
+      "id": "4aabe002-0077-45dd-ba59-db6687133b3b",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "bfb43cfd-f8d8-4427-b27b-4c74971eca94",
+      "source_type": "file",
+      "source_location": "python/example.py:2",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "hashlib",
+        "language": "Python",
+        "match": "import hashlib",
+        "line": 2,
+        "snippet": "from cryptography.hazmat.primitives import hashes\nimport hashlib\nimport ssl"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942388Z"
+    },
+    {
+      "id": "c4656c6a-c46d-4bd3-98cd-55957d9b62db",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "79bb7551-1ce5-413c-bada-f883b84e056e",
+      "source_type": "file",
+      "source_location": "python/example.py:3",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "ssl",
+        "language": "Python",
+        "match": "import ssl",
+        "line": 3,
+        "snippet": "import hashlib\nimport ssl\n"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942397Z"
+    },
+    {
+      "id": "f9dec21f-2026-4451-9c1d-c055224c0872",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "fddc4eb8-fa98-41bf-b1c8-9e2106b41730",
+      "source_type": "file",
+      "source_location": "js/example.js:10",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "3DES",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 168,
+          "primitive": "block_cipher"
+        },
+        "language": "JavaScript",
+        "match": "3DES",
+        "line": 10,
+        "snippet": "\n// Banned 3DES legacy.\nconst banned = \"3DES\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.94247Z"
+    },
+    {
+      "id": "1ac14b34-366b-4c4e-829d-30727947137b",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "fddc4eb8-fa98-41bf-b1c8-9e2106b41730",
+      "source_type": "file",
+      "source_location": "js/example.js:11",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "3DES",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 168,
+          "primitive": "block_cipher"
+        },
+        "language": "JavaScript",
+        "match": "3DES",
+        "line": 11,
+        "snippet": "// Banned 3DES legacy.\nconst banned = \"3DES\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942473Z"
+    },
+    {
+      "id": "958973c7-e673-4634-807a-2b3cf556d54a",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "4217f958-0a8b-479c-b383-5470b80f0143",
+      "source_type": "file",
+      "source_location": "js/example.js:6",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RSA",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 2048,
+          "primitive": "signature"
+        },
+        "language": "JavaScript",
+        "match": "\"alg\":\"RS256\"",
+        "line": 6,
+        "snippet": "// JWT alg patterns appear in literal strings.\nconst token = {\"alg\":\"RS256\"};\nconst e = {\"alg\":\"ES256\"};"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942485Z"
+    },
+    {
+      "id": "04d95e66-46b1-425a-b11d-4a068e033b5c",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "ce58647f-587d-4366-ad7c-61644c57e845",
+      "source_type": "file",
+      "source_location": "js/example.js:7",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ECDSA-P-256",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 256,
+          "primitive": "signature"
+        },
+        "language": "JavaScript",
+        "match": "\"alg\":\"ES256\"",
+        "line": 7,
+        "snippet": "const token = {\"alg\":\"RS256\"};\nconst e = {\"alg\":\"ES256\"};\nconst h = {\"alg\":\"HS256\"};"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942496Z"
+    },
+    {
+      "id": "de69ae8b-28e6-4f8e-86f6-c9e5cf1614a2",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "4aa475e8-e87f-497e-8db7-08854aab466a",
+      "source_type": "file",
+      "source_location": "js/example.js:8",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "HMAC-SHA256",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "mac"
+        },
+        "language": "JavaScript",
+        "match": "\"alg\":\"HS256\"",
+        "line": 8,
+        "snippet": "const e = {\"alg\":\"ES256\"};\nconst h = {\"alg\":\"HS256\"};\n"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942506Z"
+    },
+    {
+      "id": "fe605385-a750-4414-af80-d46a26cb68d9",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "78b74add-0c54-4344-ad7a-db3bc44bfe85",
+      "source_type": "file",
+      "source_location": "js/example.js:1",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "node:crypto",
+        "language": "JavaScript",
+        "match": "require('crypto')",
+        "line": 1,
+        "snippet": "const crypto = require('crypto');\nconst forge = require('node-forge');"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942518Z"
+    },
+    {
+      "id": "b7f40bb0-5f03-4815-b85f-06ebb24d737f",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "61515240-5b78-4229-a4eb-9bed6fb0c4ab",
+      "source_type": "file",
+      "source_location": "js/example.js:2",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "node-forge",
+        "language": "JavaScript",
+        "match": "require('node-forge')",
+        "line": 2,
+        "snippet": "const crypto = require('crypto');\nconst forge = require('node-forge');\nconst jwt = require('jsonwebtoken');"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942535Z"
+    },
+    {
+      "id": "6d8fb4df-1a44-4bfa-b3c9-a31d63b75daa",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "140e0048-736f-4cbf-b15e-a675e813a07d",
+      "source_type": "file",
+      "source_location": "js/example.js:3",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "jsonwebtoken",
+        "language": "JavaScript",
+        "match": "require('jsonwebtoken')",
+        "line": 3,
+        "snippet": "const forge = require('node-forge');\nconst jwt = require('jsonwebtoken');\n"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942552Z"
+    },
+    {
+      "id": "8cde3370-a4ba-4136-abdd-9eda22952006",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "c790e2a2-c3b8-4efa-a924-ba07fe99f66e",
+      "source_type": "file",
+      "source_location": "rust/example.rs:9",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "MD5",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Rust",
+        "match": "MD5",
+        "line": 9,
+        "snippet": "    let _ = \"RSA-2048\";\n    // MD5 must be banned.\n    let _ = \"MD5\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942614Z"
+    },
+    {
+      "id": "3bb2ccf5-a6a0-4130-b3ba-226689990668",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "c790e2a2-c3b8-4efa-a924-ba07fe99f66e",
+      "source_type": "file",
+      "source_location": "rust/example.rs:10",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "MD5",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Rust",
+        "match": "MD5",
+        "line": 10,
+        "snippet": "    // MD5 must be banned.\n    let _ = \"MD5\";\n    // We are migrating to ML-KEM-768."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942617Z"
+    },
+    {
+      "id": "c98f5a37-ec35-4946-b723-7b5cc4790adc",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "f99762f4-6dd7-4ac3-96de-09ee00566890",
+      "source_type": "file",
+      "source_location": "rust/example.rs:7",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RSA",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 2048,
+          "primitive": "signature"
+        },
+        "language": "Rust",
+        "match": "RSA-2048",
+        "line": 7,
+        "snippet": "fn legacy() {\n    // RSA-2048 keys are quantum-vulnerable.\n    let _ = \"RSA-2048\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.94262Z"
+    },
+    {
+      "id": "4ecdf8bb-0457-412b-b79e-d311e4cd1f93",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "f99762f4-6dd7-4ac3-96de-09ee00566890",
+      "source_type": "file",
+      "source_location": "rust/example.rs:8",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RSA",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 2048,
+          "primitive": "signature"
+        },
+        "language": "Rust",
+        "match": "RSA-2048",
+        "line": 8,
+        "snippet": "    // RSA-2048 keys are quantum-vulnerable.\n    let _ = \"RSA-2048\";\n    // MD5 must be banned."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942622Z"
+    },
+    {
+      "id": "87036015-ad57-4dc5-9c00-446dc91a35fc",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8b4a1a72-3bcc-4e10-a4b1-6887527871a0",
+      "source_type": "file",
+      "source_location": "rust/example.rs:4",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-256",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Rust",
+        "match": "Sha256",
+        "line": 4,
+        "snippet": "use rustls;\nuse sha2::Sha256;\n"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942626Z"
+    },
+    {
+      "id": "e08a515d-6c52-4a8b-8caa-b7c29455d8ba",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8b4a1a72-3bcc-4e10-a4b1-6887527871a0",
+      "source_type": "file",
+      "source_location": "rust/example.rs:13",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-256",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Rust",
+        "match": "SHA-256",
+        "line": 13,
+        "snippet": "    let _ = \"ML-KEM-768\";\n    // SHA-256 is safe symmetrically.\n    let _ = \"SHA-256\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942629Z"
+    },
+    {
+      "id": "72e67fbf-985f-4d38-bf87-4b4c03ca0ae0",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8b4a1a72-3bcc-4e10-a4b1-6887527871a0",
+      "source_type": "file",
+      "source_location": "rust/example.rs:14",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-256",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Rust",
+        "match": "SHA-256",
+        "line": 14,
+        "snippet": "    // SHA-256 is safe symmetrically.\n    let _ = \"SHA-256\";\n}"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942631Z"
+    },
+    {
+      "id": "38cfc641-c3c1-429d-a799-13f5a9cb91e1",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8fddd123-f397-4e40-8aea-4b838d6e3961",
+      "source_type": "file",
+      "source_location": "rust/example.rs:11",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ML-KEM",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "kem"
+        },
+        "language": "Rust",
+        "match": "ML-KEM-768",
+        "line": 11,
+        "snippet": "    let _ = \"MD5\";\n    // We are migrating to ML-KEM-768.\n    let _ = \"ML-KEM-768\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942649Z"
+    },
+    {
+      "id": "a45c5086-f703-489a-b006-3cc26ae00c93",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8fddd123-f397-4e40-8aea-4b838d6e3961",
+      "source_type": "file",
+      "source_location": "rust/example.rs:12",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ML-KEM",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "kem"
+        },
+        "language": "Rust",
+        "match": "ML-KEM-768",
+        "line": 12,
+        "snippet": "    // We are migrating to ML-KEM-768.\n    let _ = \"ML-KEM-768\";\n    // SHA-256 is safe symmetrically."
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942652Z"
+    },
+    {
+      "id": "0130f99d-a124-4087-bbe4-4cc46a50d094",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "e335f91f-9acf-4219-934c-29f47094836f",
+      "source_type": "file",
+      "source_location": "rust/example.rs:2",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "ring",
+        "language": "Rust",
+        "match": "use ring;",
+        "line": 2,
+        "snippet": "// Boab test fixture - Rust.\nuse ring;\nuse rustls;"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942656Z"
+    },
+    {
+      "id": "675c18a1-ca40-455b-8cc0-796704bc5da9",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "2837ae3c-8932-4b87-a66b-c5242d642847",
+      "source_type": "file",
+      "source_location": "rust/example.rs:3",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "rustls",
+        "language": "Rust",
+        "match": "use rustls;",
+        "line": 3,
+        "snippet": "use ring;\nuse rustls;\nuse sha2::Sha256;"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942658Z"
+    },
+    {
+      "id": "a4494cab-6a2b-47d2-a40b-dac10d0406e3",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "27c8d420-3704-4984-90f2-cdd0422887c4",
+      "source_type": "file",
+      "source_location": "rust/example.rs:4",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "sha2",
+        "language": "Rust",
+        "match": "use sha2::",
+        "line": 4,
+        "snippet": "use rustls;\nuse sha2::Sha256;\n"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942661Z"
+    },
+    {
+      "id": "5f8aa85b-b71f-4299-b55b-f6e61cc43e35",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8bf7be95-480a-4b20-8466-ff669f9d65b6",
+      "source_type": "file",
+      "source_location": "java/Example.java:6",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RSA",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 4096,
+          "primitive": "signature"
+        },
+        "language": "Java",
+        "match": "RSA-4096",
+        "line": 6,
+        "snippet": "public class Example {\n    // RSA-4096 legacy chain, target SLH-DSA.\n    static final String LEGACY = \"RSA-4096\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942715Z"
+    },
+    {
+      "id": "e1c93c1e-230a-4ae2-9427-bdc80e22b535",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "8bf7be95-480a-4b20-8466-ff669f9d65b6",
+      "source_type": "file",
+      "source_location": "java/Example.java:7",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "RSA",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 4096,
+          "primitive": "signature"
+        },
+        "language": "Java",
+        "match": "RSA-4096",
+        "line": 7,
+        "snippet": "    // RSA-4096 legacy chain, target SLH-DSA.\n    static final String LEGACY = \"RSA-4096\";\n    static final String TARGET = \"SLH-DSA\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942717Z"
+    },
+    {
+      "id": "d8520c03-5031-4da6-9885-f6a64c0df6af",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "59c6fe53-7bdb-4482-9bda-b39eef28b315",
+      "source_type": "file",
+      "source_location": "java/Example.java:9",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-512",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "Java",
+        "match": "SHA-512",
+        "line": 9,
+        "snippet": "    static final String TARGET = \"SLH-DSA\";\n    static final String HASH = \"SHA-512\";\n}"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942721Z"
+    },
+    {
+      "id": "2fed2eb9-867a-47de-aa7e-97637f41ac17",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "43549e59-4235-4335-b6b2-c631243fe7c3",
+      "source_type": "file",
+      "source_location": "java/Example.java:6",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SLH-DSA",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "signature"
+        },
+        "language": "Java",
+        "match": "SLH-DSA",
+        "line": 6,
+        "snippet": "public class Example {\n    // RSA-4096 legacy chain, target SLH-DSA.\n    static final String LEGACY = \"RSA-4096\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942724Z"
+    },
+    {
+      "id": "7983744e-2594-45f0-9e9c-71368fcc3d83",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "43549e59-4235-4335-b6b2-c631243fe7c3",
+      "source_type": "file",
+      "source_location": "java/Example.java:8",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SLH-DSA",
+        "pqc_status": "resistant",
+        "parameter_set": {
+          "primitive": "signature"
+        },
+        "language": "Java",
+        "match": "SLH-DSA",
+        "line": 8,
+        "snippet": "    static final String LEGACY = \"RSA-4096\";\n    static final String TARGET = \"SLH-DSA\";\n    static final String HASH = \"SHA-512\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942726Z"
+    },
+    {
+      "id": "06af2f1d-b174-4c44-be4b-9f3bac35f185",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "bf29e942-c3f8-4f83-b71f-9ff92916aa64",
+      "source_type": "file",
+      "source_location": "java/Example.java:1",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "javax.crypto",
+        "language": "Java",
+        "match": "import javax.crypto.",
+        "line": 1,
+        "snippet": "import javax.crypto.Cipher;\nimport java.security.MessageDigest;"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942758Z"
+    },
+    {
+      "id": "e2c73a57-756d-4dbf-8132-03b2c1afdd44",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "25558667-5143-44b9-a03f-74a50c77635d",
+      "source_type": "file",
+      "source_location": "java/Example.java:2",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "java.security",
+        "language": "Java",
+        "match": "import java.security.",
+        "line": 2,
+        "snippet": "import javax.crypto.Cipher;\nimport java.security.MessageDigest;\nimport org.bouncycastle.crypto.engines.AESEngine;"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942791Z"
+    },
+    {
+      "id": "a3bab0c0-44ca-4a35-9824-88b3823845c4",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "288d9d9f-9bb2-41b0-bd7a-64fab50c7248",
+      "source_type": "file",
+      "source_location": "java/Example.java:3",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "BouncyCastle",
+        "language": "Java",
+        "match": "import org.bouncycastle.",
+        "line": 3,
+        "snippet": "import java.security.MessageDigest;\nimport org.bouncycastle.crypto.engines.AESEngine;\n"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942824Z"
+    },
+    {
+      "id": "bbe4186f-c11f-48a6-a04d-65464b186373",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "5000c4db-e18a-4a9c-881d-86ac7c6be31d",
+      "source_type": "file",
+      "source_location": "dotnet/Example.cs:3",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ECDSA-P-384",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 384,
+          "primitive": "signature"
+        },
+        "language": "DotNet",
+        "match": "ECDSA-P-384",
+        "line": 3,
+        "snippet": "\n// SHA-384 hashes and ECDSA-P-384 signatures.\npublic static class Example"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942878Z"
+    },
+    {
+      "id": "1951ea23-2962-48bf-acde-ecbb0c9c55a2",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "5000c4db-e18a-4a9c-881d-86ac7c6be31d",
+      "source_type": "file",
+      "source_location": "dotnet/Example.cs:7",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "ECDSA-P-384",
+        "pqc_status": "vulnerable",
+        "parameter_set": {
+          "key_size_bits": 384,
+          "primitive": "signature"
+        },
+        "language": "DotNet",
+        "match": "ECDSA-P-384",
+        "line": 7,
+        "snippet": "    public const string Hash = \"SHA-384\";\n    public const string Sig = \"ECDSA-P-384\";\n}"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.94288Z"
+    },
+    {
+      "id": "7bfab42d-2cff-4cd1-97f1-ec0f805a8653",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "d2fbb2ae-c726-4d3a-b19d-dd610200ad41",
+      "source_type": "file",
+      "source_location": "dotnet/Example.cs:3",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-384",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "DotNet",
+        "match": "SHA-384",
+        "line": 3,
+        "snippet": "\n// SHA-384 hashes and ECDSA-P-384 signatures.\npublic static class Example"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942883Z"
+    },
+    {
+      "id": "b587e8bf-7d48-44a4-a941-b21bfd0d9c02",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "d2fbb2ae-c726-4d3a-b19d-dd610200ad41",
+      "source_type": "file",
+      "source_location": "dotnet/Example.cs:6",
+      "evidence": {
+        "kind": "algorithm_match",
+        "algorithm_name": "SHA-384",
+        "pqc_status": "symmetric_ok",
+        "parameter_set": {
+          "primitive": "hash"
+        },
+        "language": "DotNet",
+        "match": "SHA-384",
+        "line": 6,
+        "snippet": "{\n    public const string Hash = \"SHA-384\";\n    public const string Sig = \"ECDSA-P-384\";"
+      },
+      "confidence": "high",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942886Z"
+    },
+    {
+      "id": "3234ff44-a56e-4213-a0d8-1bd82e7b4c36",
+      "scan_id": "798d1d4c-7a86-4d52-9104-f08c815cd3b9",
+      "crypto_asset_id": "f4ad7dad-9ef3-415c-bb41-b3778b2e7a51",
+      "source_type": "file",
+      "source_location": "dotnet/Example.cs:1",
+      "evidence": {
+        "kind": "library_import",
+        "library_name": "System.Security.Cryptography",
+        "language": "DotNet",
+        "match": "using System.Security.Cryptography",
+        "line": 1,
+        "snippet": "using System.Security.Cryptography;\n"
+      },
+      "confidence": "medium",
+      "status": "new",
+      "discovered_at": "2026-10-20T08:42:37.942932Z"
+    }
+  ],
+  "error_message": null
+}

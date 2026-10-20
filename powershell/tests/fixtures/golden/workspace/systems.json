@@ -1,0 +1,22 @@
+[
+  {
+    "id": "7fdfaa41-5057-4312-ad68-3417f70891b9",
+    "name": "Demo Payments",
+    "description": null,
+    "classification": "protected",
+    "criticality": "mission_critical",
+    "is_soci": true,
+    "expected_data_lifetime_years": 25,
+    "created_at": "2026-10-20T08:45:18.925739Z"
+  },
+  {
+    "id": "66703f62-b9e8-48a0-bb83-d2d5630f0ad2",
+    "name": "HR | People",
+    "description": "Human \"resources\"\nline two",
+    "classification": "official_sensitive",
+    "criticality": "essential",
+    "is_soci": false,
+    "expected_data_lifetime_years": null,
+    "created_at": "2026-10-20T08:45:18.925745Z"
+  }
+]
