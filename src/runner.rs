@@ -27,6 +27,7 @@ pub fn run(cli: Cli) -> i32 {
         Command::Plan(ref sub) => cmd_plan(&cli.workspace, sub),
         Command::Vendor(ref sub) => cmd_vendor(&cli.workspace, sub),
         Command::Report(ref args) => cmd_report(&cli.workspace, args),
+        Command::Push(ref args) => cmd_push(&cli.workspace, args),
         Command::Config(ref sub) => cmd_config(&cli.workspace, sub),
     };
 
@@ -507,6 +508,15 @@ fn cmd_vendor(workspace_root: &std::path::Path, sub: &VendorCommand) -> Result<i
 fn cmd_report(workspace_root: &std::path::Path, args: &crate::cli::ReportArgs) -> Result<i32> {
     let ws = Workspace::open(workspace_root)?;
     let format = args.format.to_ascii_lowercase();
+    // Validate push settings before writing anything, so a bad flag fails fast.
+    let push_request = if args.push {
+        if format != "cbom" {
+            return Err(anyhow!("--push requires --format cbom"));
+        }
+        Some(push_request(&args.push_options)?)
+    } else {
+        None
+    };
     let default_name = match format.as_str() {
         "json" => "report.json",
         "cbom" => "bom.cdx.json",
@@ -525,7 +535,76 @@ fn cmd_report(workspace_root: &std::path::Path, args: &crate::cli::ReportArgs) -
         _ => unreachable!(),
     }
     println!("wrote {} report to {}", format, out_path.display());
+    if let Some(request) = push_request {
+        let (body, spec_version) = crate::push::load_cbom(&out_path)?;
+        report_push(&crate::push::push(&request, &body, &spec_version)?);
+    }
     Ok(0)
+}
+
+fn cmd_push(workspace_root: &std::path::Path, args: &crate::cli::PushArgs) -> Result<i32> {
+    let request = push_request(&args.options)?;
+    let source = match &args.file {
+        Some(path) => path.clone(),
+        None => Workspace::open(workspace_root)?
+            .reports_dir()
+            .join("bom.cdx.json"),
+    };
+    let (body, spec_version) = crate::push::load_cbom(&source)?;
+    report_push(&crate::push::push(&request, &body, &spec_version)?);
+    Ok(0)
+}
+
+fn push_request(opts: &crate::cli::PushOptions) -> Result<crate::push::PushRequest> {
+    let url = opts
+        .url
+        .clone()
+        .filter(|u| !u.trim().is_empty())
+        .ok_or_else(|| anyhow!("no push URL configured; pass --url or set BOAB_PUSH_URL"))?;
+    let endpoint = crate::push::Endpoint::parse(&url)?;
+    if !endpoint.https && !opts.insecure {
+        return Err(anyhow!(
+            "refusing to push over plain HTTP to {}; use https:// or pass --insecure",
+            crate::push::redact_url(&url)
+        ));
+    }
+    let headers = opts
+        .headers
+        .iter()
+        .map(|raw| crate::push::parse_header(raw))
+        .collect::<Result<Vec<_>>>()?;
+    if let Some(run_id) = &opts.run_id {
+        let valid = !run_id.is_empty()
+            && run_id.len() <= 200
+            && run_id.chars().all(|c| c.is_ascii_graphic() || c == ' ');
+        if !valid {
+            return Err(anyhow!("--run-id must be 1-200 printable ASCII characters"));
+        }
+    }
+    Ok(crate::push::PushRequest {
+        url,
+        token: opts.token.clone().filter(|t| !t.is_empty()),
+        headers,
+        run_id: opts.run_id.clone(),
+        insecure: opts.insecure,
+        connect_timeout: std::time::Duration::from_secs(opts.connect_timeout_seconds),
+        total_timeout: std::time::Duration::from_secs(opts.push_timeout_seconds),
+        retries: opts.retries,
+        retry_delay: std::time::Duration::from_millis(opts.retry_delay_ms),
+    })
+}
+
+fn report_push(outcome: &crate::push::PushOutcome) {
+    let mut line = format!("pushed CBOM: HTTP {} {}", outcome.status, outcome.reason)
+        .trim_end()
+        .to_string();
+    if let Some(id) = &outcome.request_id {
+        line.push_str(&format!(", request id {}", id));
+    }
+    if outcome.attempts > 1 {
+        line.push_str(&format!(" (after {} attempts)", outcome.attempts));
+    }
+    println!("{}", line);
 }
 
 fn cmd_config(workspace_root: &std::path::Path, sub: &ConfigCommand) -> Result<i32> {

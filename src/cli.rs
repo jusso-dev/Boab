@@ -54,6 +54,8 @@ pub enum Command {
     Vendor(VendorCommand),
     /// Export the workspace state as JSON, CycloneDX 1.6 CBOM, or Markdown.
     Report(ReportArgs),
+    /// Upload a CycloneDX CBOM to an HTTPS endpoint you configure.
+    Push(PushArgs),
     /// Get or set workspace configuration values.
     #[command(subcommand)]
     Config(ConfigCommand),
@@ -288,6 +290,74 @@ pub struct ReportArgs {
     /// Output path. Defaults to .boab/reports/.
     #[arg(long, short = 'o')]
     pub output: Option<PathBuf>,
+    /// After writing a CBOM, push it to --url (requires --format cbom).
+    #[arg(long)]
+    pub push: bool,
+    #[command(flatten)]
+    pub push_options: PushOptions,
+}
+
+#[derive(Debug, Args)]
+pub struct PushArgs {
+    /// CBOM to upload, or `-` for stdin. Defaults to .boab/reports/bom.cdx.json.
+    #[arg(long, short = 'f')]
+    pub file: Option<PathBuf>,
+    #[command(flatten)]
+    pub options: PushOptions,
+}
+
+/// Destination and transport settings shared by `boab push` and `boab report --push`.
+#[derive(Args)]
+pub struct PushOptions {
+    /// Endpoint to POST the CBOM to. Nothing is sent unless a URL is set.
+    #[arg(long, env = "BOAB_PUSH_URL", value_name = "URL")]
+    pub url: Option<String>,
+    /// Bearer token or API key for the Authorization header. Prefer BOAB_PUSH_TOKEN.
+    #[arg(
+        long,
+        env = "BOAB_PUSH_TOKEN",
+        hide_env_values = true,
+        value_name = "TOKEN"
+    )]
+    pub token: Option<String>,
+    /// Extra request header as key=value. Repeatable.
+    #[arg(long = "header", value_name = "KEY=VALUE")]
+    pub headers: Vec<String>,
+    /// Run identifier sent in the X-Boab-Run-Id header.
+    #[arg(long, env = "BOAB_PUSH_RUN_ID", value_name = "ID")]
+    pub run_id: Option<String>,
+    /// Allow plain http:// URLs.
+    #[arg(long)]
+    pub insecure: bool,
+    /// Seconds allowed to connect (and complete the TLS handshake).
+    #[arg(long, default_value_t = 10u64, value_parser = clap::value_parser!(u64).range(1..=600))]
+    pub connect_timeout_seconds: u64,
+    /// Seconds allowed for each attempt, from connect to full response.
+    #[arg(long, default_value_t = 60u64, value_parser = clap::value_parser!(u64).range(1..=3600))]
+    pub push_timeout_seconds: u64,
+    /// Retries after a network error, timeout, or 5xx response.
+    #[arg(long, default_value_t = 3u32, value_parser = clap::value_parser!(u32).range(0..=10))]
+    pub retries: u32,
+    /// Delay before the first retry in milliseconds; doubles on each retry.
+    #[arg(long, default_value_t = 1000u64, value_parser = clap::value_parser!(u64).range(0..=60_000))]
+    pub retry_delay_ms: u64,
+}
+
+// Hand-written so `{:?}` of the parsed CLI can never print the token or header values.
+impl std::fmt::Debug for PushOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PushOptions")
+            .field("url", &self.url.as_deref().map(crate::push::redact_url))
+            .field("token", &self.token.as_ref().map(|_| "[REDACTED]"))
+            .field("headers", &self.headers.len())
+            .field("run_id", &self.run_id)
+            .field("insecure", &self.insecure)
+            .field("connect_timeout_seconds", &self.connect_timeout_seconds)
+            .field("push_timeout_seconds", &self.push_timeout_seconds)
+            .field("retries", &self.retries)
+            .field("retry_delay_ms", &self.retry_delay_ms)
+            .finish()
+    }
 }
 
 #[derive(Debug, Subcommand)]

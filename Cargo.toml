@@ -28,7 +28,7 @@ pkcs12 = ["dep:p12-keystore"]
 network-tests = []
 
 [dependencies]
-clap = { version = "4.5", features = ["derive", "wrap_help"] }
+clap = { version = "4.5", features = ["derive", "wrap_help", "env"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "net", "time", "io-util", "signal"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }

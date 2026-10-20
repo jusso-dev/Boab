@@ -13,7 +13,8 @@ plans against the 2026, 2028, and 2030 milestones; and exports the
 result as JSON, CycloneDX 1.6 CBOM, and Markdown reports.
 
 Boab is air-gapped by default. The only outbound network connections
-it makes are TLS handshakes against targets you supply.
+it makes are TLS handshakes against targets you supply, and, only if
+you configure a URL, an opt-in `boab push` of the CBOM to that URL.
 
 ## Why this exists
 
@@ -86,8 +87,9 @@ beats a UI-led platform on three axes that matter to Australian
 organisations:
 
 1. **Air-gapped by default.** Boab makes no outbound network calls
-   except for TLS scans against targets you specify. Suitable for
-   classified networks and offline build environments.
+   except for TLS scans against targets you specify and an opt-in
+   `boab push` to a URL you configure. Suitable for classified
+   networks and offline build environments.
 2. **Auditable artefacts.** Every output (inventory, scan records,
    plans, reports) is a plain JSON or Markdown file you can diff,
    sign, and commit alongside your code.
@@ -274,8 +276,10 @@ walkthrough.
 With air-gapped mode on, Boab refuses to perform HSTS probes against
 TLS endpoints (the `--probe-hsts` flag returns an error). The TLS
 scanner itself still connects to the user-specified targets to
-complete the standard handshake; that is the only outbound traffic
-Boab will ever emit.
+complete the standard handshake. The only other outbound traffic is
+`boab push` (or `boab report --push`), which sends the CBOM to the URL
+you configure and nothing else; without a URL it sends nothing. See
+[`docs/push.md`](./docs/push.md).
 
 For fully offline use, run TLS scans on an internet-facing relay and
 ship the resulting `.boab/scans/<id>.json` files into your offline
