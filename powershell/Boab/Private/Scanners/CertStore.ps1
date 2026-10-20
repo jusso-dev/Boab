@@ -780,7 +780,7 @@ function Get-BoabPkcs12CertificateDers {
 
             if ($bag -is [System.Security.Cryptography.Pkcs.Pkcs12CertBag]) {
                 if (-not $bag.IsX509Certificate) { throw 'PKCS12: unsupported certificate type' }
-                $der = $bag.EncodedCertificate.ToArray()
+                $der = [byte[]]$bag.GetCertificate().RawData
                 $parsed = ConvertFrom-BoabX509Der -Der $der
                 $certs.Add([pscustomobject]@{
                         Der        = $der

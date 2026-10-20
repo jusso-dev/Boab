@@ -262,10 +262,10 @@ function Invoke-BoabX25519 {
     $k[0] = $k[0] -band 248
     $k[31] = ($k[31] -band 127) -bor 64
     $kInt = [System.Numerics.BigInteger]::new($k)
-    $u = [byte[]]::new(33)
-    [Array]::Copy($U, $u, 32)
-    $u[31] = $u[31] -band 127
-    $x1 = [System.Numerics.BigInteger]::Remainder([System.Numerics.BigInteger]::new($u), $P)
+    $uBuf = [byte[]]::new(33)
+    [Array]::Copy($U, $uBuf, 32)
+    $uBuf[31] = $uBuf[31] -band 127
+    $x1 = [System.Numerics.BigInteger]::Remainder([System.Numerics.BigInteger]::new($uBuf), $P)
     $x2 = [System.Numerics.BigInteger]::One
     $z2 = [System.Numerics.BigInteger]::Zero
     $x3 = $x1
