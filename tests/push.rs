@@ -402,6 +402,32 @@ fn never_prints_the_token_even_when_verbose_or_echoed() {
 }
 
 #[test]
+fn trims_tokens_and_rejects_control_characters() {
+    let tmp = TempDir::new().unwrap();
+    let mock = Mock::start(vec![Reply::Status(201, "Created", &[], "")]);
+    push(&tmp, &mock)
+        .env("BOAB_PUSH_TOKEN", format!("{}\r\n", TOKEN))
+        .assert()
+        .success();
+    assert_eq!(
+        mock.requests()[0].header("authorization"),
+        Some(format!("Bearer {}", TOKEN))
+    );
+
+    let idle = Mock::start(vec![Reply::Status(201, "Created", &[], "")]);
+    let output = push(&tmp, &idle)
+        .env("BOAB_PUSH_TOKEN", format!("{}\r\nX-Injected: 1", TOKEN))
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("control characters"), "{}", stderr);
+    assert!(!stderr.contains(TOKEN));
+    thread::sleep(Duration::from_millis(100));
+    assert!(idle.requests().is_empty());
+}
+
+#[test]
 fn report_push_uploads_the_cbom_it_wrote() {
     let tmp = TempDir::new().unwrap();
     let ws = tmp.path().to_str().unwrap();

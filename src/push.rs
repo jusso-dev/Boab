@@ -401,10 +401,23 @@ async fn exchange<S: AsyncRead + AsyncWrite + Unpin>(
     head: &[u8],
     body: &[u8],
 ) -> Result<Response> {
-    stream.write_all(head).await.context("send request")?;
-    stream.write_all(body).await.context("send request body")?;
-    stream.flush().await.context("send request")?;
+    let sent: Result<()> = async {
+        stream.write_all(head).await.context("send request")?;
+        stream.write_all(body).await.context("send request body")?;
+        stream.flush().await.context("send request")
+    }
+    .await;
+    // A server may answer (e.g. 401 or 413) and close before reading the whole body,
+    // which fails the write. Prefer that response over the write error so a 4xx is
+    // reported, not retried as a network failure.
+    match (sent, read_response(&mut stream).await) {
+        (_, Ok(resp)) => Ok(resp),
+        (Err(write_error), Err(_)) => Err(write_error),
+        (Ok(()), Err(read_error)) => Err(read_error),
+    }
+}
 
+async fn read_response<S: AsyncRead + Unpin>(stream: &mut S) -> Result<Response> {
     let mut raw = Vec::new();
     let mut chunk = [0u8; 8192];
     loop {
@@ -667,6 +680,80 @@ mod tests {
         assert!(!text.contains("s3cr3t-token"));
         assert!(!text.contains("hidden-value"));
         assert!(!text.contains("key=q"));
+    }
+
+    /// Accepts a little of the body, then fails writes; the server's response is already readable.
+    struct EarlyResponse {
+        response: std::io::Cursor<Vec<u8>>,
+        accepted: usize,
+    }
+
+    impl AsyncWrite for EarlyResponse {
+        fn poll_write(
+            mut self: std::pin::Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+            buf: &[u8],
+        ) -> std::task::Poll<std::io::Result<usize>> {
+            if self.accepted > 1024 {
+                return std::task::Poll::Ready(Err(std::io::ErrorKind::BrokenPipe.into()));
+            }
+            self.accepted += buf.len().min(512);
+            std::task::Poll::Ready(Ok(buf.len().min(512)))
+        }
+        fn poll_flush(
+            self: std::pin::Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+        fn poll_shutdown(
+            self: std::pin::Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncRead for EarlyResponse {
+        fn poll_read(
+            mut self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+            buf: &mut tokio::io::ReadBuf<'_>,
+        ) -> std::task::Poll<std::io::Result<()>> {
+            std::pin::Pin::new(&mut self.response).poll_read(cx, buf)
+        }
+    }
+
+    #[tokio::test]
+    async fn reports_an_early_response_when_the_body_write_fails() {
+        let stream = EarlyResponse {
+            response: std::io::Cursor::new(
+                b"HTTP/1.1 413 Payload Too Large\r\nContent-Length: 14\r\n\r\nCBOM too large"
+                    .to_vec(),
+            ),
+            accepted: 0,
+        };
+        let resp = exchange(stream, b"POST / HTTP/1.1\r\n\r\n", &vec![b'x'; 64 * 1024])
+            .await
+            .unwrap();
+        assert_eq!(resp.status, 413);
+        assert_eq!(resp.body, b"CBOM too large");
+    }
+
+    #[tokio::test]
+    async fn keeps_the_write_error_when_no_response_arrives() {
+        let stream = EarlyResponse {
+            response: std::io::Cursor::new(Vec::new()),
+            accepted: 0,
+        };
+        let err = exchange(stream, b"POST / HTTP/1.1\r\n\r\n", &vec![b'x'; 64 * 1024])
+            .await
+            .unwrap_err();
+        assert!(
+            format!("{:#}", err).contains("send request body"),
+            "{:#}",
+            err
+        );
     }
 
     #[test]

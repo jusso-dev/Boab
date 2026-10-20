@@ -581,9 +581,25 @@ fn push_request(opts: &crate::cli::PushOptions) -> Result<crate::push::PushReque
             return Err(anyhow!("--run-id must be 1-200 printable ASCII characters"));
         }
     }
+    // Secrets pasted from files or CI settings often carry a trailing newline. A
+    // control character would also break (or inject into) the Authorization header.
+    let token = opts
+        .token
+        .as_deref()
+        .map(str::trim)
+        .filter(|t| !t.is_empty())
+        .map(str::to_string);
+    if token
+        .as_deref()
+        .is_some_and(|t| t.bytes().any(|b| b.is_ascii_control()))
+    {
+        return Err(anyhow!(
+            "push token contains control characters; check BOAB_PUSH_TOKEN or --token"
+        ));
+    }
     Ok(crate::push::PushRequest {
         url,
-        token: opts.token.clone().filter(|t| !t.is_empty()),
+        token,
         headers,
         run_id: opts.run_id.clone(),
         insecure: opts.insecure,
