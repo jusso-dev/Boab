@@ -113,10 +113,13 @@ summary{cursor:pointer;font-weight:600;color:var(--hybrid);padding:4px 0;margin-
 .formula{background:var(--track);border-radius:8px;padding:10px 14px}
 footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.milestones{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}.hero-figure{text-align:left;max-width:none}}
-@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:28%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:21%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
+.marking{text-align:center;font-weight:700;font-size:13px;letter-spacing:.08em;padding:6px 12px;background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line)}.marking:last-of-type{border-bottom:0;border-top:1px solid var(--line)}
+@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:16mm 14mm;@top-center{font:700 10px sans-serif;color:#101b2b}@bottom-center{font:700 10px sans-serif;color:#101b2b}@bottom-right{content:"Page " counter(page) " of " counter(pages);font:9px sans-serif;color:#5d6672}}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:28%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:21%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
 </style>
+<style>@media print{@page{@top-center{content:"PROTECTED"}@bottom-center{content:"PROTECTED"}}}</style>
 </head>
 <body>
+<div class="marking">PROTECTED</div>
 <header class="masthead">
 <div class="wrap">
 <div class="brand"><svg class="logo" viewBox="0 0 32 36" width="30" height="34" aria-hidden="true"><path d="M16 1L30 6V17C30 26 24 32 16 35C8 32 2 26 2 17V6Z" fill="#2a78d6"/><path d="M16 1L30 6V17C30 26 24 32 16 35Z" fill="#d9622b"/><path d="M14.4 29C14 24 13.6 20.5 12.2 17.6C10.2 16.8 8.4 15.4 7.6 13.4C9.8 13.8 11.8 14.8 13.3 15.8C13.3 13.4 12.4 11.4 11 9.8C13.4 10.8 15 12.8 16 15.2C17 12.8 18.6 10.8 21 9.8C19.6 11.4 18.7 13.4 18.7 15.8C20.2 14.8 22.2 13.8 24.4 13.4C23.6 15.4 21.8 16.8 19.8 17.6C18.4 20.5 18 24 17.6 29Z" fill="#ffffff"/></svg><span class="brand-name">Boab</span><span class="brand-tag">Transitioning to post-quantum security</span></div>
@@ -225,8 +228,8 @@ footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 <div class="tw"><table>
 <thead><tr><th>Plan</th><th>Milestone</th><th class="num">Items</th><th class="num">In progress</th><th class="num">Complete</th><th>Progress</th><th>Generated</th></tr></thead>
 <tbody>
-<tr><td>PQC transition plan 2028</td><td>2028</td><td class="num">3</td><td class="num">0</td><td class="num">0</td><td><span class="meter"><span class="mf" style="width:0%"></span></span> 0%</td><td><time datetime="2026-10-24T00:23:06.27691Z">24 October 2026</time></td></tr>
-<tr><td>Demo rollout</td><td>2030</td><td class="num">52</td><td class="num">0</td><td class="num">0</td><td><span class="meter"><span class="mf" style="width:0%"></span></span> 0%</td><td><time datetime="2026-10-24T00:23:06.285332Z">24 October 2026</time></td></tr>
+<tr><td>PQC transition plan 2028</td><td>2028</td><td class="num">3</td><td class="num">0</td><td class="num">0</td><td><span class="meter"><span class="mf" style="width:0%"></span></span> 0%</td><td><time datetime="2026-10-20T08:45:18.929927Z">20 October 2026</time></td></tr>
+<tr><td>Demo rollout</td><td>2030</td><td class="num">52</td><td class="num">0</td><td class="num">0</td><td><span class="meter"><span class="mf" style="width:0%"></span></span> 0%</td><td><time datetime="2026-10-20T08:45:18.975931Z">20 October 2026</time></td></tr>
 </tbody>
 </table></div>
 </section>
@@ -355,7 +358,8 @@ footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 <p>Refer to the ASD Information Security Manual for control mappings. Boab does not map findings to specific ISM control IDs in this version.</p>
 </section>
 </main>
-<footer class="wrap">Generated by Boab 0.1.0 at <time datetime="2026-10-24T00:23:06.29404Z">2026-10-24T00:23:06.29404Z</time>. This report is self-contained and loads nothing from the network.</footer>
+<footer class="wrap">Generated by Boab 0.1.0 at <time datetime="2026-10-24T06:18:00.833405Z">2026-10-24T06:18:00.833405Z</time>. This report is self-contained and loads nothing from the network. The protective marking is the highest classification of the systems in scope; confirm it before release.</footer>
+<div class="marking">PROTECTED</div>
 <script>document.querySelectorAll('details[data-collapse]').forEach(function(d){d.open=false;});window.addEventListener('beforeprint',function(){document.querySelectorAll('details').forEach(function(d){d.open=true;});});</script>
 </body>
 </html>

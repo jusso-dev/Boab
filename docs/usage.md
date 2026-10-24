@@ -159,7 +159,11 @@ The four formats:
   exposure and priority charts, ASD milestone status, top risks,
   per-system exposure, plans and vendor dependencies. The file loads
   nothing from the network, follows light or dark mode, and prints
-  cleanly to PDF.
+  cleanly to PDF. When systems are registered, the highest
+  classification among them is shown as the protective marking at the
+  top and bottom of the report. Chromium-based browsers (Chrome, Edge)
+  also repeat it in every printed page's header and footer with
+  "Page X of Y". Confirm the marking before release.
 
 Defaults land in `.boab/reports/` if `--output` is omitted.
 

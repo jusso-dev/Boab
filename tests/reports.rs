@@ -212,6 +212,16 @@ fn html_report_is_self_contained() {
     assert!(!html.contains("href=\"javascript:"));
     // Only the CSP-hashed print helper runs.
     assert_eq!(html.matches("<script>").count(), 1);
+    // The highest system classification marks the top and bottom of the
+    // page on screen and every printed page's header and footer.
+    assert_eq!(
+        html.matches("<div class=\"marking\">PROTECTED</div>")
+            .count(),
+        2
+    );
+    assert!(html.contains("@top-center{content:\"PROTECTED\"}"));
+    assert!(html.contains("@bottom-center{content:\"PROTECTED\"}"));
+    assert!(html.contains("counter(pages)"));
 }
 
 #[test]
@@ -236,4 +246,7 @@ fn html_report_renders_an_empty_workspace() {
     assert!(html.contains("Not yet assessed"));
     assert!(html.contains("No assets inventoried yet."));
     assert!(html.contains("No transition plans generated yet."));
+    // No systems, so no protective marking is claimed.
+    assert!(!html.contains("<div class=\"marking\">"));
+    assert!(!html.contains("@top-center{content:"));
 }

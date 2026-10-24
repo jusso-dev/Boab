@@ -277,6 +277,38 @@ Describe 'reports.rs' {
         $html | Should -Not -Match '<link|src="http|url\(|@import'
     }
 
+    It 'HTML report carries the highest system classification as its protective marking' {
+        $ws = New-BoabTestDirectory
+        (Invoke-BoabTest --workspace $ws init).ExitCode | Should -Be 0
+        $out = Join-Path $ws 'readiness.html'
+        (Invoke-BoabTest --workspace $ws report --format html -o $out).ExitCode | Should -Be 0
+        [System.IO.File]::ReadAllText($out) | Should -Not -Match 'class="marking"'
+        (Invoke-BoabTest --workspace $ws system add --name A --classification official --criticality low).ExitCode | Should -Be 0
+        (Invoke-BoabTest --workspace $ws system add --name B --classification official_sensitive --criticality low).ExitCode | Should -Be 0
+        (Invoke-BoabTest --workspace $ws report --format html -o $out).ExitCode | Should -Be 0
+        $html = [System.IO.File]::ReadAllText($out)
+        ([regex]::Matches($html, '<div class="marking">OFFICIAL: Sensitive</div>')).Count | Should -Be 2
+        $html | Should -Match ([regex]::Escape('@top-center{content:"OFFICIAL: Sensitive"}'))
+        $html | Should -Match ([regex]::Escape('counter(pages)'))
+    }
+
+    It 'protective marking is the highest classification in any order (<Expected>)' -ForEach @(
+        @{ Levels = @('unofficial'); Expected = 'UNOFFICIAL' }
+        @{ Levels = @('unofficial', 'official'); Expected = 'OFFICIAL' }
+        @{ Levels = @('official_sensitive', 'official'); Expected = 'OFFICIAL: Sensitive' }
+        @{ Levels = @('official', 'protected', 'official_sensitive'); Expected = 'PROTECTED' }
+        @{ Levels = @('secret', 'protected', 'unofficial'); Expected = 'SECRET' }
+        @{ Levels = @('protected', 'top_secret', 'secret'); Expected = 'TOP SECRET' }
+        @{ Levels = @('top_secret', 'unofficial'); Expected = 'TOP SECRET' }
+    ) {
+        InModuleScope Boab -Parameters @{ Levels = $Levels; Expected = $Expected } {
+            param($Levels, $Expected)
+            $systems = @($Levels | ForEach-Object { @{ classification = $_ } })
+            Get-BoabHtmlProtectiveMarking -Systems $systems | Should -BeExactly $Expected
+            Get-BoabHtmlProtectiveMarking -Systems @() | Should -BeNullOrEmpty
+        }
+    }
+
     It 'writes reports under a culture with linguistic string matching (th-TH)' {
         $saved = [System.Globalization.CultureInfo]::CurrentCulture
         try {

@@ -326,7 +326,11 @@ network, so it can be emailed, attached to a board paper, or opened on
 an air-gapped machine. The only outbound links are the vendor roadmap
 sources, which open only if the reader clicks them. It follows the reader's light or dark preference and prints
 cleanly to A4 PDF. Collapsed appendices expand automatically when
-printed.
+printed. When systems are registered, the highest classification
+among them (for example PROTECTED) is shown as the protective marking
+at the top and bottom of the report. When printed from Chrome or Edge
+it is also repeated in every page's header and footer, alongside
+"Page X of Y" numbering.
 
 Sections:
 
