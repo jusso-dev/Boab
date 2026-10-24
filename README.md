@@ -10,7 +10,8 @@ prepare for and execute the transition to post-quantum cryptography
 produces a deduplicated cryptographic inventory; scores assets against
 a published risk rubric aligned to ASD guidance; generates transition
 plans against the 2026, 2028, and 2030 milestones; and exports the
-result as JSON, CycloneDX 1.6 CBOM, and Markdown reports.
+result as JSON, CycloneDX 1.6 CBOM, Markdown, and self-contained
+HTML executive reports.
 
 Boab is air-gapped by default. The only outbound network connections
 it makes are TLS handshakes against targets you supply, and, only if
@@ -119,7 +120,8 @@ organisations:
    plan preserves user edits (target dates, assignees, notes,
    status) when the underlying asset is unchanged.
 5. **Report.** Exports the workspace state as native JSON, CycloneDX
-   1.6 CBOM, or a board-ready Markdown readiness report.
+   1.6 CBOM, a board-ready Markdown readiness report, or a
+   self-contained HTML report for executives.
 
 ## Scoring rubric
 
@@ -176,12 +178,12 @@ Windows (x86_64 MSVC) when releases are cut.
 
 A PowerShell 7.2+ port lives in [`powershell/`](powershell/README.md). It
 reads and writes the same `.boab/` workspace and produces the same JSON,
-CycloneDX CBOM, Markdown and console output as the Rust binary:
+CycloneDX CBOM, Markdown, HTML and console output as the Rust binary:
 
 ```powershell
 Import-Module ./powershell/Boab
 Invoke-Boab scan codebase ./services/payments   # same argv as `boab`
-pwsh ./powershell/boab.ps1 report --format md --output readiness.md
+pwsh ./powershell/boab.ps1 report --format html --output readiness.html
 ```
 
 Idiomatic cmdlets (`Add-BoabSystem`, `Start-BoabTlsScan`, `New-BoabPlan`,
@@ -219,10 +221,11 @@ boab inventory list --pqc-status vulnerable
 # 7. Generate a transition plan for the 2028 milestone.
 boab plan generate --milestone 2028
 
-# 8. Produce the three outputs: machine-readable, supply chain, and board pack.
+# 8. Produce the outputs: machine-readable, supply chain, board pack, and executive report.
 boab report --format json   --output board-pack.json
 boab report --format cbom   --output bom.cdx.json
 boab report --format md     --output readiness.md
+boab report --format html   --output readiness.html
 ```
 
 ## Example output
@@ -248,6 +251,8 @@ directory is the output of one such run:
   1.6 CBOM, each entry tagged with `nistQuantumSecurityLevel`.
 - [`readiness.md`](./examples/demo/reports/readiness.md) — the
   board-ready Markdown readiness report, ranked by LATICE priority.
+- [`readiness.html`](./examples/demo/reports/readiness.html) — the
+  same picture as a self-contained executive HTML report.
 
 Sample inventory rows:
 
@@ -299,6 +304,22 @@ with the appropriate `cryptoProperties` block (`algorithm`,
 `certificate`, `related-crypto-material`, or `protocol`). Boab sets
 `nistQuantumSecurityLevel` per asset so consumers can sort by NIST
 security categories 1, 2, 3, or 5.
+
+### HTML executive report
+
+`boab report --format html` writes `readiness.html`, a single file
+written for executives and boards: an overall posture call (action
+required, at risk, on track), key findings in plain English, headline
+numbers, status against the ASD 2026, 2028, and 2030 milestones,
+exposure by PQC status and triage tier, the top 25 assets with
+recommended actions, systems in scope, plan progress, vendor
+dependencies, and the methodology.
+
+The file is standalone. CSS and the logo are inline, there is no
+JavaScript, and a strict Content Security Policy blocks every network
+request, so it opens on an air-gapped workstation, survives email and
+document gateways, and prints cleanly to A4 (or "Save as PDF"). The
+Rust binary and the PowerShell module produce identical output.
 
 ### Markdown readiness report
 
@@ -512,8 +533,8 @@ milestone clock.
 
 KMS scanners, Kubernetes secret enumeration, SSH and GPG host key
 inventory, live vendor PQC roadmap fetching, automatic remediation,
-specific ISM control ID mapping, scoring weight overrides, HTML
-reports, web UI, daemon mode, and multi-machine federation. These
+specific ISM control ID mapping, scoring weight overrides, web UI,
+daemon mode, and multi-machine federation. These
 are tracked in `docs/backlog-v1.1.md`.
 
 ## Project status
@@ -526,6 +547,7 @@ Boab is built in five phases:
 - Phase 3: TLS endpoint and certificate store scanners.
 - Phase 4: plan generation and vendor PQC registry.
 - Phase 5: JSON, CBOM, and Markdown reports plus CI.
+- Phase 6: self-contained HTML executive report (Rust and PowerShell).
 
 See `PLAN.md` for the planning document and the commit history for
 the phase-by-phase build record.

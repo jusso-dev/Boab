@@ -146,13 +146,20 @@ of the bundled registry. There is no outbound fetching.
 boab report --format json --output board-pack.json
 boab report --format cbom --output bom.cdx.json
 boab report --format md --output readiness.md
+boab report --format html --output readiness.html
 ```
 
-The three formats:
+The four formats:
 
 - `json`: native Boab schema. Best for diffing across runs.
 - `cbom`: CycloneDX 1.6 cryptographic BOM, JSON-encoded.
 - `md`: board-ready Markdown readiness report.
+- `html`: executive readiness report as a single self-contained HTML
+  file. Inline CSS and an inline SVG logo, no scripts, no fonts or
+  images fetched from anywhere, so it opens offline, passes email and
+  document gateways, and prints cleanly to A4 (use the browser's
+  "Save as PDF" for a board pack). The PowerShell module writes the
+  same file byte for byte.
 
 Defaults land in `.boab/reports/` if `--output` is omitted.
 

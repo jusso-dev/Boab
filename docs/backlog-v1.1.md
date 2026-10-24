@@ -16,7 +16,6 @@ Items explicitly deferred from v1, captured here so they are not lost.
 
 ## Reporting
 
-- HTML report with embedded charts.
 - ISM control mapping (specific control IDs per finding category).
 - Scoring weight overrides via `.boab/config.toml`.
 

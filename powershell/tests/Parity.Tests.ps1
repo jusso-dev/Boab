@@ -186,6 +186,7 @@ Describe 'Rust binary vs PowerShell module' -Skip:(-not $script:RustBin) {
             $plan.items[0].assignee = 'payments-team'
             $plan.items[0].notes = 'Owned by Sue'
             $plan.items[1].status = 'deferred'
+            $plan.items[2].status = 'complete'
             $plan.items[1].target_date = '+002029-01-01T00:00:00.000000000Z'
             [System.IO.File]::WriteAllText($file, (ConvertTo-BoabJson -InputObject $plan))
         }
@@ -217,9 +218,11 @@ Describe 'Rust binary vs PowerShell module' -Skip:(-not $script:RustBin) {
         Invoke-ParityStep @('report', '--format', 'md')
         Invoke-ParityStep @('report', '--format', 'JSON', '-o', '{ws}/out.json')
         Invoke-ParityStep @('report', '--format', 'html')
+        Invoke-ParityStep @('report', '--format', 'pdf')
         Assert-ParityFile '.boab/reports/report.json'
         Assert-ParityFile '.boab/reports/bom.cdx.json'
         Assert-ParityFile '.boab/reports/readiness.md'
+        Assert-ParityFile '.boab/reports/readiness.html'
         Assert-ParityFile 'out.json'
     }
 

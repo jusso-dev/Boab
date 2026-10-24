@@ -4,7 +4,7 @@
 #
 # Generates a small set of intentionally-weak local certs, scans them
 # alongside a tiny demo codebase, hits a handful of public badssl.com
-# endpoints, then emits JSON / CBOM / Markdown readiness reports under
+# endpoints, then emits JSON / CBOM / Markdown / HTML readiness reports under
 # ./reports/.
 #
 # Prereqs: OpenSSL 3.x, a built `boab` binary on PATH (or pass it as $1).
@@ -80,6 +80,7 @@ mkdir -p reports
 "$BOAB" report --format json --output reports/inventory.json
 "$BOAB" report --format cbom --output reports/cbom.cdx.json
 "$BOAB" report --format md   --output reports/readiness.md
+"$BOAB" report --format html --output reports/readiness.html
 
 "$BOAB" inventory list | head -60 > inventory.txt
 
@@ -88,4 +89,5 @@ echo "Done. Outputs:"
 echo "  reports/inventory.json   - native Boab schema"
 echo "  reports/cbom.cdx.json    - CycloneDX 1.6 CBOM"
 echo "  reports/readiness.md     - board-ready Markdown"
+echo "  reports/readiness.html   - self-contained executive HTML report"
 echo "  inventory.txt            - inventory table snippet"

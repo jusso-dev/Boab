@@ -23,10 +23,11 @@ at your own systems.
 5. Run `boab scan tls` against the public badssl.com endpoints
    (expired, self-signed, RSA-2048, RSA-4096, SHA-1 chain,
    TLS 1.0, TLS 1.1, plus the healthy baseline).
-6. Generate a 2030 transition plan and emit three reports:
+6. Generate a 2030 transition plan and emit four reports:
    - `demo/reports/inventory.json` — native Boab schema
    - `demo/reports/cbom.cdx.json` — CycloneDX 1.6 CBOM
    - `demo/reports/readiness.md` — board-ready Markdown
+   - `demo/reports/readiness.html` — self-contained executive HTML report
 
 The committed `demo/reports/` directory is the output of one such run,
 so you can browse it without installing anything.

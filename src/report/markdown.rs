@@ -6,61 +6,31 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use time::format_description::well_known::Rfc3339;
-use time::OffsetDateTime;
 
-use crate::model::asset::{CryptoAsset, PqcStatus};
-use crate::scoring;
-use crate::storage;
+use super::{pqc_status_str, Readiness};
 use crate::workspace::Workspace;
 
 pub fn write(ws: &Workspace, out: &Path) -> Result<()> {
-    let systems = storage::load_systems(ws)?;
-    let inventory = storage::load_inventory(ws)?;
-    let plans = storage::list_plans(ws)?;
-    let registry = crate::vendor::load_merged(ws)?;
-    let today = OffsetDateTime::now_utc();
-
-    let mut scored: Vec<(CryptoAsset, crate::model::score::RiskScore)> = inventory
-        .into_iter()
-        .map(|a| {
-            let sys = a
-                .system_id
-                .and_then(|id| systems.iter().find(|s| s.id == id));
-            let s = scoring::score_asset(&a, sys, today);
-            (a, s)
-        })
-        .collect();
-    scored.sort_by(|a, b| {
-        b.1.priority
-            .partial_cmp(&a.1.priority)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+    let data = Readiness::load(ws)?;
+    let systems = &data.systems;
+    let scored = &data.scored;
+    let plans = &data.plans;
+    let registry = &data.registry;
+    let today = data.today;
 
     let total = scored.len();
-    let vulnerable = scored
-        .iter()
-        .filter(|(a, _)| matches!(a.pqc_status, PqcStatus::Vulnerable | PqcStatus::Unknown))
-        .count();
-    let vulnerable_pct = if total == 0 {
-        0.0
-    } else {
-        (vulnerable as f32) * 100.0 / (total as f32)
-    };
+    let vulnerable = data.vulnerable_count();
+    let vulnerable_pct = data.vulnerable_pct();
 
     let mut tier_counts: BTreeMap<u8, usize> = BTreeMap::new();
-    for (_, s) in &scored {
+    for (_, s) in scored {
         *tier_counts.entry(s.triage_tier).or_default() += 1;
     }
     let mut status_counts: BTreeMap<&'static str, usize> = BTreeMap::new();
-    for (a, _) in &scored {
-        let k = match a.pqc_status {
-            PqcStatus::Vulnerable => "vulnerable",
-            PqcStatus::Hybrid => "hybrid",
-            PqcStatus::Resistant => "resistant",
-            PqcStatus::SymmetricOk => "symmetric_ok",
-            PqcStatus::Unknown => "unknown",
-        };
-        *status_counts.entry(k).or_default() += 1;
+    for (a, _) in scored {
+        *status_counts
+            .entry(pqc_status_str(a.pqc_status))
+            .or_default() += 1;
     }
 
     let mut md = String::new();
@@ -85,7 +55,7 @@ pub fn write(ws: &Workspace, out: &Path) -> Result<()> {
     md.push_str("|-----------|------|--------|\n");
     md.push_str(&format!(
         "| Refined transition plan | 2026 | {} |\n",
-        if plans.iter().any(|p| p.milestone.year() == 2026) {
+        if data.has_plan_for(2026) {
             "plan drafted"
         } else {
             "plan outstanding"
@@ -93,7 +63,7 @@ pub fn write(ws: &Workspace, out: &Path) -> Result<()> {
     ));
     md.push_str(&format!(
         "| Implementation begins | 2028 | {} |\n",
-        if plans.iter().any(|p| p.milestone.year() == 2028) {
+        if data.has_plan_for(2028) {
             "plan drafted"
         } else {
             "plan outstanding"
@@ -101,7 +71,7 @@ pub fn write(ws: &Workspace, out: &Path) -> Result<()> {
     ));
     md.push_str(&format!(
         "| Implementation complete | 2030 | {} |\n\n",
-        if plans.iter().any(|p| p.milestone.year() == 2030) {
+        if data.has_plan_for(2030) {
             "plan drafted"
         } else {
             "plan outstanding"
@@ -159,7 +129,7 @@ pub fn write(ws: &Workspace, out: &Path) -> Result<()> {
     } else {
         md.push_str("| Plan | Milestone | Items | Generated |\n");
         md.push_str("|------|-----------|-------|-----------|\n");
-        for p in &plans {
+        for p in plans {
             md.push_str(&format!(
                 "| {} | {} | {} | {} |\n",
                 escape_md(&p.name),
@@ -193,16 +163,6 @@ pub fn write(ws: &Workspace, out: &Path) -> Result<()> {
     }
     fs::write(out, md).with_context(|| format!("write {}", out.display()))?;
     Ok(())
-}
-
-fn pqc_status_str(s: PqcStatus) -> &'static str {
-    match s {
-        PqcStatus::Vulnerable => "vulnerable",
-        PqcStatus::Hybrid => "hybrid",
-        PqcStatus::Resistant => "resistant",
-        PqcStatus::SymmetricOk => "symmetric_ok",
-        PqcStatus::Unknown => "unknown",
-    }
 }
 
 fn escape_md(s: &str) -> String {

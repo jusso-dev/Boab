@@ -259,5 +259,6 @@ fn workspace(scans_dir: &Path, root: &Path) -> Result<()> {
     report::json::write(&ws, &reports.join("report.json"))?;
     report::cbom::write(&ws, &reports.join("bom.cdx.json"))?;
     report::markdown::write(&ws, &reports.join("readiness.md"))?;
+    report::html::write(&ws, &reports.join("readiness.html"))?;
     Ok(())
 }

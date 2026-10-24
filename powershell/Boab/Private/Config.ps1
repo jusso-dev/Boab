@@ -479,7 +479,7 @@ function Set-BoabConfigValue {
             return
         }
         'reporting.default_format' {
-            if ($Value -cnotin @('json', 'md', 'cbom')) { throw (New-BoabException 'default_format must be one of: json, md, cbom') }
+            if ($Value -cnotin @('json', 'md', 'cbom', 'html')) { throw (New-BoabException 'default_format must be one of: json, md, cbom, html') }
             $Config.reporting.default_format = $Value
             return
         }

@@ -124,6 +124,8 @@ function ConvertTo-NormalizedText {
             $map[$key]
         })
     $t = [regex]::Replace($t, '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})', '<ts>')
+    # HTML reports show the same instants in readable form inside <time> elements.
+    $t = [regex]::Replace($t, '<time datetime="<ts>">[^<]*</time>', '<time datetime="<ts>"><ts></time>')
     if ($Table) {
         $t = [regex]::Replace($t, ' {2,}', ' ')
         $t = [regex]::Replace($t, '─+', '─')

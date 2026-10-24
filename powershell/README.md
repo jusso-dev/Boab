@@ -1,8 +1,8 @@
 # Boab for PowerShell
 
 A PowerShell 7 port of the [Boab](../README.md) PQC-readiness CLI. It reads and
-writes the same `.boab/` workspace, produces the same JSON, CycloneDX 1.6 CBOM and
-Markdown reports, prints the same console output and returns the same exit codes
+writes the same `.boab/` workspace, produces the same JSON, CycloneDX 1.6 CBOM,
+Markdown and HTML reports, prints the same console output and returns the same exit codes
 as the Rust `boab` binary, so the two can be used interchangeably on one workspace.
 
 Requirements: PowerShell 7.2 or later (`pwsh`) on Windows, macOS or Linux. No
@@ -32,6 +32,7 @@ Invoke-Boab scan tls example.com:443 --timeout-seconds 5
 Invoke-Boab inventory list --tier 1
 Invoke-Boab plan generate --milestone 2030 --name "Demo rollout"
 Invoke-Boab report --format md -o readiness.md
+Invoke-Boab report --format html -o readiness.html   # self-contained executive report
 $LASTEXITCODE   # 0 ok, 1 runtime error, 2 usage error, 64 not implemented (scan codebase --git)
 ```
 
@@ -60,7 +61,7 @@ echo $?
 | `Import-BoabScan -Path <scan.json>` | (no CLI equivalent) dedup an existing scan file into the inventory |
 | `New-BoabPlan` / `Get-BoabPlan` / `Update-BoabPlan` | `boab plan generate/list,show/regenerate` |
 | `Get-BoabVendor [-Search]` / `Add-BoabVendor` | `boab vendor list,search/add` |
-| `Export-BoabReport -Format json\|cbom\|md [-OutputPath]` | `boab report` |
+| `Export-BoabReport -Format json\|cbom\|md\|html [-OutputPath]` | `boab report` |
 | `ConvertTo-BoabJson` | `serde_json::to_string_pretty`-compatible serialiser |
 
 Every cmdlet takes `-Workspace <path>` (default `.`). Commands that change state
@@ -82,6 +83,9 @@ support `-WhatIf`/`-Confirm`.
   formatted identically.
 * **Config** (`config.toml`) is parsed with a small TOML reader and written in
   exactly the layout and string-quoting style of `toml::to_string_pretty`.
+* **HTML** reports embed `Data/report-theme.css`, a copy of the repository's
+  `data/report-theme.css` (`cargo test` fails if the two drift), and use integer
+  arithmetic for every percentage, so the file matches the Rust output byte for byte.
 * **Console tables** mirror comfy-table's `UTF8_FULL` preset (non-TTY layout).
 * **CLI parsing** mirrors clap: `--opt=value`, `-ovalue`, global flags anywhere,
   `--`, help/version output (captured verbatim from the Rust binary), suggestion

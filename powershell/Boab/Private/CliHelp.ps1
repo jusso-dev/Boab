@@ -14,7 +14,7 @@ Commands:
   scan       Scan codebases, TLS endpoints, or certificate stores
   plan       Generate and inspect transition plans
   vendor     Inspect the bundled vendor PQC registry and customer overrides
-  report     Export the workspace state as JSON, CycloneDX 1.6 CBOM, or Markdown
+  report     Export the workspace state as JSON, CycloneDX 1.6 CBOM, Markdown, or HTML
   push       Upload a CycloneDX CBOM to an HTTPS endpoint you configure
   config     Get or set workspace configuration values
   help       Print this message or the help of the given subcommand(s)
@@ -517,13 +517,13 @@ Options:
     'report' = @{
         Usage = 'boab report [OPTIONS] --format <FORMAT>'
         Help  = @'
-Export the workspace state as JSON, CycloneDX 1.6 CBOM, or Markdown
+Export the workspace state as JSON, CycloneDX 1.6 CBOM, Markdown, or HTML
 
 Usage: boab report [OPTIONS] --format <FORMAT>
 
 Options:
       --format <FORMAT>
-          Output format: json, cbom, or md
+          Output format: json, cbom, md, or html
       --workspace <WORKSPACE>
           Workspace root directory (default: current directory) [default: .]
   -o, --output <OUTPUT>

@@ -131,7 +131,7 @@ Describe 'integration.rs' {
         (Invoke-BoabTest --workspace $script:Tmp plan generate --milestone 2027).StdErr | Should -BeExactly "error: milestone must be one of 2026, 2028, 2030`n"
         (Invoke-BoabTest --workspace $script:Tmp system add --name x --classification foo).StdErr | Should -BeExactly "error: unknown classification: foo`n"
         (Invoke-BoabTest --workspace $script:Tmp vendor add --vendor a --product b --pqc-status zz).StdErr | Should -BeExactly "error: unknown pqc_status: zz (expected vulnerable|hybrid|resistant|symmetric_ok|unknown)`n"
-        (Invoke-BoabTest --workspace $script:Tmp report --format html).StdErr | Should -BeExactly "error: unknown report format: html`n"
+        (Invoke-BoabTest --workspace $script:Tmp report --format pdf).StdErr | Should -BeExactly "error: unknown report format: pdf`n"
         (Invoke-BoabTest --workspace $script:Tmp inventory show 00000000-0000-0000-0000-000000000000).StdErr | Should -BeExactly "error: no inventory entry with id 00000000-0000-0000-0000-000000000000`n"
         (Invoke-BoabTest --workspace $script:Tmp scan codebase).StdErr | Should -BeExactly "error: missing path or --git URL`n"
         (Invoke-BoabTest --workspace $script:Tmp scan tls).StdErr | Should -BeExactly "error: no TLS targets specified; pass host:port or --targets-file`n"

@@ -521,6 +521,7 @@ fn cmd_report(workspace_root: &std::path::Path, args: &crate::cli::ReportArgs) -
         "json" => "report.json",
         "cbom" => "bom.cdx.json",
         "md" => "readiness.md",
+        "html" => "readiness.html",
         other => return Err(anyhow!("unknown report format: {}", other)),
     };
     let out_path = args
@@ -532,6 +533,7 @@ fn cmd_report(workspace_root: &std::path::Path, args: &crate::cli::ReportArgs) -
         "json" => crate::report::json::write(&ws, &out_path)?,
         "cbom" => crate::report::cbom::write(&ws, &out_path)?,
         "md" => crate::report::markdown::write(&ws, &out_path)?,
+        "html" => crate::report::html::write(&ws, &out_path)?,
         _ => unreachable!(),
     }
     println!("wrote {} report to {}", format, out_path.display());

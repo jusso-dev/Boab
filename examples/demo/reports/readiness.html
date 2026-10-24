@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
+<meta name="generator" content="Boab 0.1.0">
+<title>PQC Readiness Report | Boab</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f3f4f1;
+  --surface: #ffffff;
+  --ink: #12232f;
+  --ink-2: #485863;
+  --muted: #66727c;
+  --line: #e2e6e8;
+  --track: #eceeed;
+  --brand: #0f2a3d;
+  --brand-2: #173a52;
+  --accent: #c8742b;
+  --critical: #d03b3b;
+  --serious: #ec835a;
+  --warning: #fab219;
+  --good: #0ca30c;
+  --info: #2a78c4;
+  --neutral: #a3aab0;
+  --radius: 10px;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--page);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.marking { text-align: center; font-weight: 700; font-size: 13px; letter-spacing: 0.08em; padding: 6px 12px; background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--line); }
+.marking:last-child { border-bottom: 0; border-top: 1px solid var(--line); margin-top: 24px; }
+a { color: var(--info); }
+code { font-family: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace; font-size: 0.86em; overflow-wrap: break-word; }
+.page { max-width: 1120px; margin: 0 auto; padding: 0 28px 48px; }
+.masthead { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%); color: #fff; }
+.masthead .page { padding-top: 32px; padding-bottom: 32px; display: flex; gap: 20px; align-items: center; }
+.logo { width: 60px; height: 60px; flex: none; color: #fff; }
+.logo .leaf { fill: var(--accent); }
+.eyebrow { margin: 0; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 600; color: #f0c79f; }
+h1 { margin: 2px 0 6px; font-size: 30px; line-height: 1.2; font-weight: 700; }
+.meta { margin: 0; font-size: 13px; color: #c9d5de; }
+.meta span + span::before { content: "\00b7"; margin: 0 8px; color: #8aa1b1; }
+main.page { padding-top: 28px; }
+section { margin-top: 32px; }
+h2 { font-size: 19px; margin: 0 0 4px; font-weight: 650; }
+.lede { margin: 0 0 14px; color: var(--ink-2); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; break-inside: avoid; }
+.posture { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 0; padding: 0; overflow: hidden; }
+.posture-badge { padding: 24px; color: #fff; }
+.posture-badge p { margin: 0; }
+.posture-badge .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9; }
+.posture-badge .value { font-size: 28px; font-weight: 700; line-height: 1.2; margin: 6px 0 8px; }
+.posture-badge .detail { font-size: 14px; opacity: 0.95; }
+.posture-critical .posture-badge { background: var(--critical); }
+.posture-serious .posture-badge { background: #b9531f; }
+.posture-good .posture-badge { background: #08780a; }
+.posture-neutral .posture-badge { background: #5d6870; }
+.findings { padding: 20px 24px; }
+.findings h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.findings ul { margin: 0; padding-left: 20px; }
+.findings li { margin: 6px 0; }
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; border-top: 4px solid var(--brand); break-inside: avoid; }
+.kpi .label { margin: 0; font-size: 13px; color: var(--ink-2); }
+.kpi .value { margin: 4px 0 2px; font-size: 32px; font-weight: 700; line-height: 1.1; }
+.kpi .sub { margin: 0; font-size: 12px; color: var(--muted); }
+.kpi-critical { border-top-color: var(--critical); }
+.kpi-serious { border-top-color: var(--serious); }
+.kpi-good { border-top-color: var(--good); }
+.timeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.milestone { position: relative; padding-top: 18px; }
+.milestone .year { margin: 0; font-size: 26px; font-weight: 700; color: var(--brand); }
+.milestone .title { margin: 0; font-weight: 600; }
+.milestone .desc { margin: 4px 0 12px; font-size: 13px; color: var(--ink-2); }
+.milestone::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 2px; background: var(--track); }
+.milestone.done::before { background: var(--good); }
+.milestone.open::before { background: var(--serious); }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chart h3 { margin: 0 0 14px; font-size: 15px; }
+.bar-row { display: grid; grid-template-columns: 170px 1fr 92px; gap: 12px; align-items: center; margin: 9px 0; font-size: 13px; }
+.bar-label { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.bar-track { height: 14px; background: var(--track); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 0 4px 4px 0; }
+.bar-fill.nonzero { min-width: 4px; }
+.bar-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.bar-value strong { color: var(--ink); }
+.swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
+.s-vulnerable, .t-1 { background: var(--critical); }
+.s-unknown, .t-2 { background: var(--serious); }
+.s-hybrid, .t-3 { background: var(--warning); }
+.s-resistant { background: var(--good); }
+.s-symmetric_ok { background: var(--info); }
+.t-4 { background: var(--neutral); }
+.pill { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px; font-weight: 600; padding: 2px 9px 2px 7px; border-radius: 999px; background: #f2f4f5; border: 1px solid var(--line); color: var(--ink); }
+.pill .swatch { width: 8px; height: 8px; }
+.tier { display: inline-block; min-width: 26px; text-align: center; font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 6px; color: #fff; }
+.tier.t-2, .tier.t-3, .tier.t-4 { color: var(--ink); }
+.table-card { padding: 0; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 600; color: var(--ink-2); background: #f7f8f7; border-bottom: 1px solid var(--line); padding: 10px 12px; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.name { min-width: 180px; max-width: 360px; overflow-wrap: anywhere; font-weight: 500; }
+td.algo { min-width: 140px; max-width: 220px; }
+td.algo code { overflow-wrap: anywhere; }
+td.name .kind { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.score { display: flex; align-items: center; gap: 8px; min-width: 110px; }
+.score .bar-track { flex: 1; height: 8px; }
+.score .bar-fill { background: var(--brand); }
+.score b { font-variant-numeric: tabular-nums; min-width: 28px; text-align: right; }
+.note { margin: 10px 2px 0; font-size: 12px; color: var(--muted); }
+.empty { margin: 0; color: var(--muted); }
+.progress { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+.progress .bar-track { flex: 1; height: 8px; }
+.progress .bar-fill { background: var(--good); }
+.method { columns: 2; column-gap: 28px; font-size: 13px; color: var(--ink-2); }
+.method p { margin: 0 0 10px; break-inside: avoid; }
+.formula { display: block; padding: 10px 12px; background: #f7f8f7; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); margin-bottom: 10px; }
+footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+footer p { margin: 4px 0; }
+@media (max-width: 900px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .charts, .timeline, .posture { grid-template-columns: 1fr; }
+  .method { columns: 1; }
+  .bar-row { grid-template-columns: 130px 1fr 80px; }
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 12mm;
+    @top-center { font: 700 10px sans-serif; color: #12232f; }
+    @bottom-center { font: 700 10px sans-serif; color: #12232f; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 9px sans-serif; color: #66727c; }
+  }
+  .marking { display: none; }
+  :root { background: #fff; font-size: 12px; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { max-width: none; padding-left: 0; padding-right: 0; }
+  .masthead .page { padding: 20px 18px; }
+  section { margin-top: 20px; }
+  .kpis { grid-template-columns: repeat(5, 1fr); }
+  .posture { grid-template-columns: 220px 1fr; }
+  .charts { grid-template-columns: repeat(2, 1fr); }
+  .timeline { grid-template-columns: repeat(3, 1fr); }
+  .bar-row { grid-template-columns: 150px 1fr 76px; }
+  .method { columns: 2; }
+  .table-card { overflow: visible; break-inside: auto; }
+  th, td { padding: 8px 8px; }
+  td.name { min-width: 140px; }
+  td.algo { min-width: 110px; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  h2, .lede { break-after: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+<style>@media print { @page { @top-center { content: "PROTECTED"; } @bottom-center { content: "PROTECTED"; } } }</style>
+</head>
+<body>
+<div class="marking">PROTECTED</div>
+<header class="masthead">
+<div class="page">
+<svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M17 46c-4.5-8.5-4-17 1.5-23h11c5.5 6 6 14.5 1.5 23z"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M20 24c-2.5-5-7-7.5-12-8.5M22.5 23c-.5-6-1-10.5-3.5-15M25.5 23c1-6 3-10 6.5-13.5M28 24c3-4.5 7.5-6.5 12-6.5"/><circle class="leaf" cx="7" cy="15" r="3"/><circle class="leaf" cx="18.5" cy="7" r="3"/><circle class="leaf" cx="32.5" cy="9" r="3"/><circle class="leaf" cx="41" cy="17.5" r="3"/></svg>
+<div>
+<p class="eyebrow">Post-quantum cryptography transition</p>
+<h1>PQC Readiness Report</h1>
+<p class="meta"><span>Generated <time datetime="2026-10-24T05:49:52.152303Z">24 October 2026, 05:49 UTC</time></span><span>Boab 0.1.0</span><span>ASD milestones 2026, 2028, 2030</span></p>
+</div>
+</div>
+</header>
+<main class="page">
+<section aria-labelledby="summary">
+<h2 id="summary">Executive summary</h2>
+<p class="lede">Position of the inventoried cryptography against the ASD post-quantum transition milestones.</p>
+<div class="card posture posture-serious">
+<div class="posture-badge"><p class="label">Overall posture</p><p class="value">At risk</p><p class="detail">15 of 18 assets rely on cryptography a quantum computer is expected to break, or have an unknown status.</p></div>
+<div class="findings">
+<h3>Key findings</h3>
+<ul>
+<li>15 of 18 cryptographic assets (83.3%) are quantum-vulnerable or have an unknown status.</li>
+<li>No inventoried assets fall in tiers 1 or 2, so none must be migrated inside the 2028 window.</li>
+<li>No transition plan is on file for the 2026 and 2028 milestones.</li>
+<li>18 of 26 tracked vendor products have not published a post-quantum position.</li>
+<li>1 system in scope is regulated under the SOCI Act.</li>
+</ul>
+</div>
+</div>
+<div class="kpis">
+<div class="kpi"><p class="label">Cryptographic assets</p><p class="value">18</p><p class="sub">Deduplicated inventory</p></div>
+<div class="kpi kpi-critical"><p class="label">At-risk assets</p><p class="value">15</p><p class="sub">83.3% vulnerable or unknown</p></div>
+<div class="kpi kpi-good"><p class="label">Tier 1 (urgent)</p><p class="value">0</p><p class="sub">Migrate inside the 2028 window</p></div>
+<div class="kpi"><p class="label">Systems in scope</p><p class="value">1</p><p class="sub">1 SOCI-regulated</p></div>
+<div class="kpi kpi-serious"><p class="label">Transition plans</p><p class="value">1</p><p class="sub">1 of 3 milestones covered</p></div>
+</div>
+</section>
+<section aria-labelledby="milestones">
+<h2 id="milestones">ASD transition milestones</h2>
+<p class="lede">Whether a Boab transition plan is on file for each milestone.</p>
+<div class="card timeline">
+<div class="milestone open"><p class="year">2026</p><p class="title">Refined transition plan</p><p class="desc">Have a refined PQC transition plan in place by the end of 2026.</p><span class="pill"><span class="swatch s-unknown"></span>Plan outstanding</span></div>
+<div class="milestone open"><p class="year">2028</p><p class="title">Implementation begins</p><p class="desc">Begin migrating priority systems to post-quantum cryptography.</p><span class="pill"><span class="swatch s-unknown"></span>Plan outstanding</span></div>
+<div class="milestone done"><p class="year">2030</p><p class="title">Implementation complete</p><p class="desc">Retire quantum-vulnerable cryptography across the estate.</p><span class="pill"><span class="swatch s-resistant"></span>Plan drafted</span></div>
+</div>
+</section>
+<section aria-labelledby="distribution">
+<h2 id="distribution">Where the exposure sits</h2>
+<p class="lede">Inventory broken down by post-quantum status and by triage tier.</p>
+<div class="charts">
+<div class="card chart">
+<h3>Assets by PQC status</h3>
+<div class="bar-row" title="Quantum-vulnerable: 12 (66.7%)"><span class="bar-label"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span><div class="bar-track"><div class="bar-fill s-vulnerable nonzero" style="width:66.7%"></div></div><span class="bar-value"><strong>12</strong> (66.7%)</span></div>
+<div class="bar-row" title="Unknown: 3 (16.7%)"><span class="bar-label"><span class="swatch s-unknown"></span>Unknown</span><div class="bar-track"><div class="bar-fill s-unknown nonzero" style="width:16.7%"></div></div><span class="bar-value"><strong>3</strong> (16.7%)</span></div>
+<div class="bar-row" title="PQ/T hybrid: 0 (0.0%)"><span class="bar-label"><span class="swatch s-hybrid"></span>PQ/T hybrid</span><div class="bar-track"><div class="bar-fill s-hybrid" style="width:0.0%"></div></div><span class="bar-value"><strong>0</strong> (0.0%)</span></div>
+<div class="bar-row" title="Quantum-resistant: 0 (0.0%)"><span class="bar-label"><span class="swatch s-resistant"></span>Quantum-resistant</span><div class="bar-track"><div class="bar-fill s-resistant" style="width:0.0%"></div></div><span class="bar-value"><strong>0</strong> (0.0%)</span></div>
+<div class="bar-row" title="Symmetric (adequate): 3 (16.7%)"><span class="bar-label"><span class="swatch s-symmetric_ok"></span>Symmetric (adequate)</span><div class="bar-track"><div class="bar-fill s-symmetric_ok nonzero" style="width:16.7%"></div></div><span class="bar-value"><strong>3</strong> (16.7%)</span></div>
+</div>
+<div class="card chart">
+<h3>Assets by triage tier</h3>
+<div class="bar-row" title="Tier 1: by 2028: 0 (0.0%)"><span class="bar-label"><span class="swatch t-1"></span>Tier 1: by 2028</span><div class="bar-track"><div class="bar-fill t-1" style="width:0.0%"></div></div><span class="bar-value"><strong>0</strong> (0.0%)</span></div>
+<div class="bar-row" title="Tier 2: 2028 window: 0 (0.0%)"><span class="bar-label"><span class="swatch t-2"></span>Tier 2: 2028 window</span><div class="bar-track"><div class="bar-fill t-2" style="width:0.0%"></div></div><span class="bar-value"><strong>0</strong> (0.0%)</span></div>
+<div class="bar-row" title="Tier 3: 2029 to 2030: 12 (66.7%)"><span class="bar-label"><span class="swatch t-3"></span>Tier 3: 2029 to 2030</span><div class="bar-track"><div class="bar-fill t-3 nonzero" style="width:66.7%"></div></div><span class="bar-value"><strong>12</strong> (66.7%)</span></div>
+<div class="bar-row" title="Tier 4: monitor: 6 (33.3%)"><span class="bar-label"><span class="swatch t-4"></span>Tier 4: monitor</span><div class="bar-track"><div class="bar-fill t-4 nonzero" style="width:33.3%"></div></div><span class="bar-value"><strong>6</strong> (33.3%)</span></div>
+</div>
+</div>
+</section>
+<section aria-labelledby="priority">
+<h2 id="priority">Highest-priority assets</h2>
+<p class="lede">Ranked by the Boab priority score (0 to 10). Start migration work at the top of this list.</p>
+<div class="card table-card">
+<table>
+<thead><tr><th class="num">#</th><th>Asset</th><th>Algorithm</th><th>PQC status</th><th>Priority</th><th>Tier</th><th>Recommended action</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td class="name">MD5<span class="kind">Algorithm</span></td><td class="algo"><code>MD5</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:57%"></div></div><b>5.7</b></div></td><td><span class="tier t-3">3</span></td><td>Plan replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">2</td><td class="name">SHA-1<span class="kind">Algorithm</span></td><td class="algo"><code>SHA-1</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:57%"></div></div><b>5.7</b></div></td><td><span class="tier t-3">3</span></td><td>Plan replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">3</td><td class="name">rsa2048.badssl.com:443|CN=*.badssl.com<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:54%"></div></div><b>5.4</b></div></td><td><span class="tier t-3">3</span></td><td>Track certificate for replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">4</td><td class="name">rsa2048.badssl.com:443|C=US, O=Let&#39;s Encrypt, CN=R13<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:54%"></div></div><b>5.4</b></div></td><td><span class="tier t-3">3</span></td><td>Track certificate for replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">5</td><td class="name">rsa4096.badssl.com:443|C=US, O=Let&#39;s Encrypt, CN=R12<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:54%"></div></div><b>5.4</b></div></td><td><span class="tier t-3">3</span></td><td>Track certificate for replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">6</td><td class="name">/Users/justinmiddler/code-projects/Boab/examples/demo/certs/ecdsa-p256.crt|CN=ecdsa-p256.example, O=Boab Demo, C=AU<span class="kind">Certificate</span></td><td class="algo"><code>ecdsa-with-SHA256</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:54%"></div></div><b>5.4</b></div></td><td><span class="tier t-3">3</span></td><td>Track certificate for replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">7</td><td class="name">/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa1024.crt|CN=weak-rsa1024.example, O=Boab Demo, C=AU<span class="kind">Certificate</span></td><td class="algo"><code>sha1WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:54%"></div></div><b>5.4</b></div></td><td><span class="tier t-3">3</span></td><td>Track certificate for replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">8</td><td class="name">rsa4096.badssl.com:443|CN=*.badssl.com<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:51%"></div></div><b>5.1</b></div></td><td><span class="tier t-3">3</span></td><td>Track certificate for replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">9</td><td class="name">X25519<span class="kind">Algorithm</span></td><td class="algo"><code>X25519</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:51%"></div></div><b>5.1</b></div></td><td><span class="tier t-3">3</span></td><td>Plan replacement during the 2029 to 2030 rollout window</td></tr>
+<tr><td class="num">10</td><td class="name">stdlib crypto<span class="kind">Library</span></td><td class="algo"><code>stdlib crypto</code></td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:45%"></div></div><b>4.5</b></div></td><td><span class="tier t-3">3</span></td><td>Track vendor PQC roadmap; upgrade before 2030</td></tr>
+<tr><td class="num">11</td><td class="name">pycryptodome<span class="kind">Library</span></td><td class="algo"><code>pycryptodome</code></td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:45%"></div></div><b>4.5</b></div></td><td><span class="tier t-3">3</span></td><td>Track vendor PQC roadmap; upgrade before 2030</td></tr>
+<tr><td class="num">12</td><td class="name">hashlib<span class="kind">Library</span></td><td class="algo"><code>hashlib</code></td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:45%"></div></div><b>4.5</b></div></td><td><span class="tier t-3">3</span></td><td>Track vendor PQC roadmap; upgrade before 2030</td></tr>
+<tr><td class="num">13</td><td class="name">TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256@rsa2048.badssl.com<span class="kind">TLS endpoint</span></td><td class="algo"><code>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</code></td><td><span class="pill"><span class="swatch s-symmetric_ok"></span>Symmetric (adequate)</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><b>2.7</b></div></td><td><span class="tier t-4">4</span></td><td>Monitor; no immediate action required</td></tr>
+<tr><td class="num">14</td><td class="name">TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256@rsa4096.badssl.com<span class="kind">TLS endpoint</span></td><td class="algo"><code>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</code></td><td><span class="pill"><span class="swatch s-symmetric_ok"></span>Symmetric (adequate)</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><b>2.7</b></div></td><td><span class="tier t-4">4</span></td><td>Monitor; no immediate action required</td></tr>
+<tr><td class="num">15</td><td class="name">TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256@badssl.com<span class="kind">TLS endpoint</span></td><td class="algo"><code>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</code></td><td><span class="pill"><span class="swatch s-symmetric_ok"></span>Symmetric (adequate)</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><b>2.7</b></div></td><td><span class="tier t-4">4</span></td><td>Monitor; no immediate action required</td></tr>
+<tr><td class="num">16</td><td class="name">/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa2048.crt|CN=rsa2048.example, O=Boab Demo, C=AU<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><b>2.7</b></div></td><td><span class="tier t-4">4</span></td><td>Monitor; reassess if classification or retention changes</td></tr>
+<tr><td class="num">17</td><td class="name">/Users/justinmiddler/code-projects/Boab/examples/demo/certs/expired.crt|CN=expired.example, O=Boab Demo, C=AU<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><b>2.7</b></div></td><td><span class="tier t-4">4</span></td><td>Monitor; reassess if classification or retention changes</td></tr>
+<tr><td class="num">18</td><td class="name">/Users/justinmiddler/code-projects/Boab/examples/demo/certs/rsa4096.crt|CN=long-lived-rsa4096.example, O=Boab Demo, C=AU<span class="kind">Certificate</span></td><td class="algo"><code>sha256WithRSAEncryption</code></td><td><span class="pill"><span class="swatch s-vulnerable"></span>Quantum-vulnerable</span></td><td><div class="score"><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><b>2.7</b></div></td><td><span class="tier t-4">4</span></td><td>Monitor; reassess if classification or retention changes</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section aria-labelledby="systems">
+<h2 id="systems">Systems in scope</h2>
+<p class="lede">Business systems registered in the workspace and the cryptographic assets linked to each.</p>
+<div class="card table-card">
+<table>
+<thead><tr><th>System</th><th>Classification</th><th>Criticality</th><th>SOCI</th><th class="num">Data lifetime</th><th class="num">Assets</th><th class="num">At risk</th></tr></thead>
+<tbody>
+<tr><td class="name">Demo Payments</td><td>PROTECTED</td><td>Mission critical</td><td>Yes</td><td class="num">25 years</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><td class="name">Not linked to a system</td><td>-</td><td>-</td><td>-</td><td class="num">-</td><td class="num">18</td><td class="num">15</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section aria-labelledby="plans">
+<h2 id="plans">Transition plans on file</h2>
+<p class="lede">Transition plans generated by Boab and progress against each.</p>
+<div class="card table-card">
+<table>
+<thead><tr><th>Plan</th><th class="num">Milestone</th><th class="num">Items</th><th>Progress</th><th>Generated</th></tr></thead>
+<tbody>
+<tr><td class="name">Demo rollout</td><td class="num">2030</td><td class="num">18</td><td><div class="progress"><div class="bar-track"><div class="bar-fill" style="width:0.0%"></div></div><span>0 of 18 complete</span></div></td><td><time datetime="2026-05-19T01:42:01.742655Z">2026-05-19</time></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section aria-labelledby="vendors">
+<h2 id="vendors">Vendor PQC dependencies</h2>
+<p class="lede">Published post-quantum positions of the vendors tracked in the Boab registry, including workspace overrides.</p>
+<div class="card table-card">
+<table>
+<thead><tr><th>Vendor</th><th>Product</th><th>PQC status</th><th>Target</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td class="name">Apache</td><td>httpd</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Apache</td><td>Tomcat</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">AWS</td><td>ACM</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">AWS</td><td>KMS</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>2024 (hybrid TLS in s2n)</td><td><a href="https://docs.aws.amazon.com/kms/latest/developerguide/pqtls.html" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">AWS</td><td>TLS</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>2024 (s2n-tls)</td><td><a href="https://github.com/aws/s2n-tls" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">BoringSSL</td><td>BoringSSL</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>2024</td><td><a href="https://boringssl.googlesource.com/boringssl/" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">BouncyCastle</td><td>Java</td><td><span class="pill"><span class="swatch s-resistant"></span>Quantum-resistant</span></td><td>1.78+</td><td><a href="https://www.bouncycastle.org/latest_releases.html" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">Cisco</td><td>ASA</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td><a href="https://www.cisco.com/c/en/us/about/trust-center/post-quantum-cryptography.html" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">Cisco</td><td>Firepower</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td><a href="https://www.cisco.com/c/en/us/about/trust-center/post-quantum-cryptography.html" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">Cisco</td><td>IOS XE</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td><a href="https://www.cisco.com/c/en/us/about/trust-center/post-quantum-cryptography.html" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">Citrix</td><td>NetScaler</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">CyberArk</td><td>PAM</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Entrust</td><td>nShield</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>Firmware roadmap</td><td><a href="https://www.entrust.com/products/hsm/nshield" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">F5</td><td>BIG-IP</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Fortinet</td><td>FortiOS</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Google</td><td>Cloud</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>2024 (BoringSSL)</td><td><a href="https://cloud.google.com/blog/products/identity-security/google-cloud-roadmap-for-post-quantum-cryptography" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">HashiCorp</td><td>Vault</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Microsoft</td><td>Azure</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>2026 onwards</td><td><a href="https://learn.microsoft.com/en-us/azure/security/fundamentals/post-quantum-cryptography" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">Microsoft</td><td>M365</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Microsoft</td><td>Windows</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>2026 onwards</td><td><a href="https://www.microsoft.com/en-us/security/blog/topic/pqc/" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">nginx</td><td>nginx</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">OpenSSL</td><td>OpenSSL</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>3.5 (planned)</td><td><a href="https://github.com/openssl/openssl" rel="noopener noreferrer">Vendor statement</a></td></tr>
+<tr><td class="name">Oracle</td><td>Database</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Oracle</td><td>WebLogic</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Palo Alto Networks</td><td>PAN-OS</td><td><span class="pill"><span class="swatch s-unknown"></span>Unknown</span></td><td>-</td><td>-</td></tr>
+<tr><td class="name">Thales</td><td>Luna HSM</td><td><span class="pill"><span class="swatch s-hybrid"></span>PQ/T hybrid</span></td><td>Firmware roadmap</td><td><a href="https://cpl.thalesgroup.com/encryption/hardware-security-modules/luna-hsms" rel="noopener noreferrer">Vendor statement</a></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section aria-labelledby="method">
+<h2 id="method">Methodology</h2>
+<div class="card method">
+<p>Boab inventories cryptography in source code, TLS endpoints and certificate stores, deduplicates the findings and scores each asset on five axes aligned to the ASD LATICE approach.</p>
+<p><code class="formula">priority = round(algo_vuln &times; 0.30 + hndl &times; 0.30 + data_sens &times; 0.15 + sys_crit &times; 0.15 + mig_diff &times; 0.10, 1)</code></p>
+<p><strong>Tier 1</strong> assets must be migrated inside the 2028 milestone window. <strong>Tier 2</strong> fits inside the 2028 milestone but is harder to migrate. <strong>Tier 3</strong> belongs in the 2029 to 2030 rollout window. <strong>Tier 4</strong> needs monitoring only.</p>
+<p><strong>At-risk</strong> assets use algorithms a cryptographically relevant quantum computer is expected to break (RSA, ECDSA, ECDH, classic Diffie-Hellman, and broken legacy primitives), or have a status Boab could not determine. Data protected by them today can be harvested now and decrypted later.</p>
+<p>Refer to the ASD Information Security Manual for control mappings. Boab does not map findings to specific ISM control IDs.</p>
+</div>
+</section>
+<footer><p>Generated by Boab 0.1.0 at 2026-10-24T05:49:52.152303Z. This report is self-contained and makes no network requests.</p><p>The protective marking shown is the highest classification of the systems in scope. Confirm it before release.</p></footer>
+</main>
+<div class="marking">PROTECTED</div>
+</body>
+</html>

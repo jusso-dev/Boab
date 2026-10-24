@@ -1,5 +1,5 @@
-# Report writers: native JSON, CycloneDX 1.6 CBOM and Markdown.
-# Ports of src/report/json.rs, src/report/cbom.rs and src/report/markdown.rs.
+# Report writers: native JSON, CycloneDX 1.6 CBOM and Markdown (HTML lives in HtmlReport.ps1).
+# Ports of src/report/json.rs, src/report/cbom.rs, src/report/markdown.rs and src/report/mod.rs.
 
 $script:BoabVersion = '0.1.0'
 
@@ -230,17 +230,11 @@ function Export-BoabCbomReport {
     Write-BoabReportFile -Path $Path -Content (ConvertTo-BoabJson -InputObject $bom)
 }
 
-# --- Markdown --------------------------------------------------------------------------
+# --- Readiness data (shared by Markdown and HTML) -------------------------------------
 
-function ConvertTo-BoabMarkdownEscaped {
-    param([AllowEmptyString()][string]$Text)
-    $Text.Replace('|', '\|').Replace("`n", ' ')
-}
-
-function New-BoabMarkdownReport {
-    # report::markdown::write (content only).
+function Get-BoabReadinessData {
+    # report::Readiness::load. Every asset scored, sorted by descending priority (stable).
     [CmdletBinding()]
-    [OutputType([string])]
     param([Parameter(Mandatory)][hashtable]$Workspace)
     $systems = Get-BoabStoredSystem -Workspace $Workspace
     $inventory = Get-BoabStoredInventory -Workspace $Workspace
@@ -258,14 +252,53 @@ function New-BoabMarkdownReport {
         param($x, $y)
         ([double]$y.Score.priority).CompareTo([double]$x.Score.priority)
     }
+    @{ Systems = $systems; Scored = $scored; Plans = $plans; Registry = $registry; Now = $now }
+}
+
+function Get-BoabReadinessVulnerableCount {
+    param([hashtable]$Data)
+    $n = 0
+    foreach ($e in $Data.Scored) { if ($e.Asset.pqc_status -ceq 'vulnerable' -or $e.Asset.pqc_status -ceq 'unknown') { $n++ } }
+    $n
+}
+
+function Get-BoabReadinessVulnerablePct {
+    # f32 arithmetic, as in Readiness::vulnerable_pct.
+    param([hashtable]$Data)
+    $total = $Data.Scored.Count
+    if ($total -eq 0) { return 0.0 }
+    $vulnerable = Get-BoabReadinessVulnerableCount -Data $Data
+    ConvertTo-BoabF32 ((ConvertTo-BoabF32 ([double][single]$vulnerable * 100.0)) / [double][single]$total)
+}
+
+function Test-BoabReadinessPlan {
+    param([hashtable]$Data, [int]$Year)
+    foreach ($p in $Data.Plans) { if ((Get-BoabMilestoneYear $p.milestone) -eq $Year) { return $true } }
+    $false
+}
+
+# --- Markdown --------------------------------------------------------------------------
+
+function ConvertTo-BoabMarkdownEscaped {
+    param([AllowEmptyString()][string]$Text)
+    $Text.Replace('|', '\|').Replace("`n", ' ')
+}
+
+function New-BoabMarkdownReport {
+    # report::markdown::write (content only).
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][hashtable]$Workspace)
+    $data = Get-BoabReadinessData -Workspace $Workspace
+    $systems = $data.Systems
+    $scored = $data.Scored
+    $plans = $data.Plans
+    $registry = $data.Registry
+    $now = $data.Now
 
     $total = $scored.Count
-    $vulnerable = 0
-    foreach ($e in $scored) { if ($e.Asset.pqc_status -ceq 'vulnerable' -or $e.Asset.pqc_status -ceq 'unknown') { $vulnerable++ } }
-    $pct = 0.0
-    if ($total -ne 0) {
-        $pct = ConvertTo-BoabF32 ((ConvertTo-BoabF32 ([double][single]$vulnerable * 100.0)) / [double][single]$total)
-    }
+    $vulnerable = Get-BoabReadinessVulnerableCount -Data $data
+    $pct = Get-BoabReadinessVulnerablePct -Data $data
 
     $tierCounts = [System.Collections.Generic.SortedDictionary[int, int]]::new()
     foreach ($e in $scored) {
@@ -291,8 +324,7 @@ function New-BoabMarkdownReport {
 
     $hasPlan = {
         param([int]$y)
-        foreach ($p in $plans) { if ((Get-BoabMilestoneYear $p.milestone) -eq $y) { return 'plan drafted' } }
-        'plan outstanding'
+        if (Test-BoabReadinessPlan -Data $data -Year $y) { 'plan drafted' } else { 'plan outstanding' }
     }
     & $add "## ASD LATICE phase status`n`n"
     & $add "| Milestone | Year | Status |`n"

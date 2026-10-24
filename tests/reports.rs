@@ -123,6 +123,77 @@ fn md_report_contains_executive_summary() {
 }
 
 #[test]
+fn html_report_is_self_contained_and_escaped() {
+    let tmp = init_scan_plan();
+    let ws = tmp.path().to_str().unwrap();
+    bin()
+        .args([
+            "--workspace",
+            ws,
+            "system",
+            "add",
+            "--name",
+            "<script>alert('x')</script> & Co",
+            "--classification",
+            "official_sensitive",
+            "--criticality",
+            "essential",
+        ])
+        .assert()
+        .success();
+    bin()
+        .args(["--workspace", ws, "report", "--format", "html"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("readiness.html"));
+    let html = std::fs::read_to_string(tmp.path().join(".boab/reports/readiness.html")).unwrap();
+    assert!(html.starts_with("<!DOCTYPE html>\n"));
+    assert!(html.ends_with("</html>\n"));
+    for section in [
+        "Executive summary",
+        "ASD transition milestones",
+        "Highest-priority assets",
+        "Systems in scope",
+        "Transition plans on file",
+        "Vendor PQC dependencies",
+        "Methodology",
+    ] {
+        assert!(html.contains(section), "missing section {section}");
+    }
+    // No scripts, stylesheets, or fonts fetched from anywhere: the file must
+    // render offline and pass strict email and document gateways.
+    assert!(!html.contains("<script"));
+    assert!(!html.contains("<link"));
+    assert!(!html.contains("@import"));
+    assert!(!html.contains("url("));
+    assert!(html.contains("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; Co"));
+    assert!(html.contains("OFFICIAL: Sensitive"));
+}
+
+#[test]
+fn report_data_copies_match() {
+    // The PowerShell module ships its own copy of the theme; both writers must
+    // embed identical CSS for the reports to match byte for byte.
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    for (a, b) in [
+        (
+            "data/report-theme.css",
+            "powershell/Boab/Data/report-theme.css",
+        ),
+        (
+            "data/vendor-pqc-registry.json",
+            "powershell/Boab/Data/vendor-pqc-registry.json",
+        ),
+    ] {
+        assert_eq!(
+            std::fs::read(root.join(a)).unwrap(),
+            std::fs::read(root.join(b)).unwrap(),
+            "{a} and {b} differ"
+        );
+    }
+}
+
+#[test]
 fn report_invalid_format_errors() {
     let tmp = init_scan_plan();
     bin()
@@ -131,7 +202,7 @@ fn report_invalid_format_errors() {
             tmp.path().to_str().unwrap(),
             "report",
             "--format",
-            "html",
+            "pdf",
         ])
         .assert()
         .failure()

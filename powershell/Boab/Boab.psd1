@@ -34,7 +34,7 @@
     CmdletsToExport      = @()
     VariablesToExport    = @()
     AliasesToExport      = @()
-    FileList             = @('Data/vendor-pqc-registry.json')
+    FileList             = @('Data/vendor-pqc-registry.json', 'Data/report-theme.css')
     PrivateData          = @{
         PSData = @{
             Tags         = @('pqc', 'cryptography', 'security', 'cbom', 'cyclonedx', 'asd', 'PSEdition_Core', 'Windows', 'Linux', 'MacOS')
