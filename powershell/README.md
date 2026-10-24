@@ -1,9 +1,11 @@
 # Boab for PowerShell
 
 A PowerShell 7 port of the [Boab](../README.md) PQC-readiness CLI. It reads and
-writes the same `.boab/` workspace, produces the same JSON, CycloneDX 1.6 CBOM and
-Markdown reports, prints the same console output and returns the same exit codes
-as the Rust `boab` binary, so the two can be used interchangeably on one workspace.
+writes the same `.boab/` workspace, produces the same JSON, CycloneDX 1.6 CBOM,
+Markdown and self-contained HTML reports, prints the same console output and
+returns the same exit codes as the Rust `boab` binary, so the two can be used
+interchangeably on one workspace. It is a standalone tool: the Rust binary is
+not needed to use it.
 
 Requirements: PowerShell 7.2 or later (`pwsh`) on Windows, macOS or Linux. No
 other dependencies.
@@ -32,6 +34,7 @@ Invoke-Boab scan tls example.com:443 --timeout-seconds 5
 Invoke-Boab inventory list --tier 1
 Invoke-Boab plan generate --milestone 2030 --name "Demo rollout"
 Invoke-Boab report --format md -o readiness.md
+Invoke-Boab report --format html -o readiness.html   # executive report, open in a browser
 $LASTEXITCODE   # 0 ok, 1 runtime error, 2 usage error, 64 not implemented (scan codebase --git)
 ```
 
@@ -60,7 +63,7 @@ echo $?
 | `Import-BoabScan -Path <scan.json>` | (no CLI equivalent) dedup an existing scan file into the inventory |
 | `New-BoabPlan` / `Get-BoabPlan` / `Update-BoabPlan` | `boab plan generate/list,show/regenerate` |
 | `Get-BoabVendor [-Search]` / `Add-BoabVendor` | `boab vendor list,search/add` |
-| `Export-BoabReport -Format json\|cbom\|md [-OutputPath]` | `boab report` |
+| `Export-BoabReport -Format json\|cbom\|md\|html [-OutputPath]` | `boab report` |
 | `ConvertTo-BoabJson` | `serde_json::to_string_pretty`-compatible serialiser |
 
 Every cmdlet takes `-Workspace <path>` (default `.`). Commands that change state
@@ -142,4 +145,6 @@ cargo run --release -- numbers ../../tests/fixtures/golden/numbers.json
 cargo run --release -- scores  ../../tests/fixtures/golden/scores.json
 cargo run --release -- workspace ../../tests/fixtures/scans /tmp/golden-ws
 cp -R /tmp/golden-ws/.boab/. ../../tests/fixtures/golden/workspace/
+# HTML report for the committed demo, rebuilt from its native JSON report
+cargo run --release -- demo-html ../../../examples/demo/reports/inventory.json ../../../examples/demo/reports/readiness.html
 ```

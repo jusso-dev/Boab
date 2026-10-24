@@ -131,9 +131,109 @@ fn report_invalid_format_errors() {
             tmp.path().to_str().unwrap(),
             "report",
             "--format",
-            "html",
+            "pdf",
         ])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("unknown report format"));
+        .stderr(predicate::str::contains("unknown report format: pdf"));
+}
+
+#[test]
+fn html_report_is_self_contained() {
+    let tmp = init_scan_plan();
+    let ws = tmp.path().to_str().unwrap();
+    bin()
+        .args([
+            "--workspace",
+            ws,
+            "system",
+            "add",
+            "--name",
+            "<script>alert(1)</script> & co",
+            "--classification",
+            "protected",
+            "--criticality",
+            "mission_critical",
+            "--soci",
+        ])
+        .assert()
+        .success();
+    bin()
+        .args([
+            "--workspace",
+            ws,
+            "vendor",
+            "add",
+            "--vendor",
+            "Evil",
+            "--product",
+            "Link",
+            "--pqc-status",
+            "unknown",
+            "--source-url",
+            "javascript:alert(1)",
+        ])
+        .assert()
+        .success();
+    bin()
+        .args(["--workspace", ws, "report", "--format", "html"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("wrote html report to"));
+    let out = tmp.path().join(".boab/reports/readiness.html");
+    let html = std::fs::read_to_string(&out).unwrap();
+    assert!(html.starts_with("<!DOCTYPE html>\n"));
+    assert!(html.ends_with("</html>\n"));
+    for section in [
+        "Overall posture",
+        "Recommended actions",
+        "Quantum exposure",
+        "Migration priority",
+        "ASD transition milestones",
+        "Highest-priority assets",
+        "Exposure by business system",
+        "Transition plans",
+        "Vendor PQC dependencies",
+        "Full cryptographic inventory",
+        "Methodology",
+    ] {
+        assert!(html.contains(section), "missing section {section}");
+    }
+    // Self-contained: no external stylesheets, scripts, images or fonts.
+    assert!(html.contains("default-src 'none'"));
+    for needle in ["<link", "src=\"http", "url(", "@import"] {
+        assert!(!html.contains(needle), "unexpected {needle}");
+    }
+    // User data is escaped and only http(s) URLs become links.
+    assert!(html.contains(
+        "&lt;script&gt;alert(1)&lt;/script&gt; &amp; co <span class=\"tag\">SOCI</span>"
+    ));
+    assert!(!html.contains("<script>alert(1)"));
+    assert!(!html.contains("href=\"javascript:"));
+    // Only the CSP-hashed print helper runs.
+    assert_eq!(html.matches("<script>").count(), 1);
+}
+
+#[test]
+fn html_report_renders_an_empty_workspace() {
+    let tmp = TempDir::new().unwrap();
+    let ws = tmp.path().to_str().unwrap();
+    bin().args(["--workspace", ws, "init"]).assert().success();
+    let out = tmp.path().join("empty.html");
+    bin()
+        .args([
+            "--workspace",
+            ws,
+            "report",
+            "--format",
+            "HTML",
+            "-o",
+            out.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+    let html = std::fs::read_to_string(&out).unwrap();
+    assert!(html.contains("Not yet assessed"));
+    assert!(html.contains("No assets inventoried yet."));
+    assert!(html.contains("No transition plans generated yet."));
 }

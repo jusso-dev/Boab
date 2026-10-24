@@ -184,7 +184,7 @@ Describe 'TOML config (toml::to_string_pretty parity)' {
             $cfg = New-BoabDefaultConfig
             { Set-BoabConfigValue -Config $cfg -Key 'scanner.air_gapped' -Value 'maybe' } | Should -Throw -ExpectedMessage ([WildcardPattern]::Escape('air_gapped must be true or false: provided string was not `true` or `false`'))
             { Set-BoabConfigValue -Config $cfg -Key 'schema_version' -Value 'abc' } | Should -Throw 'schema_version must be a u32: invalid digit found in string'
-            { Set-BoabConfigValue -Config $cfg -Key 'reporting.default_format' -Value 'x' } | Should -Throw 'default_format must be one of: json, md, cbom'
+            { Set-BoabConfigValue -Config $cfg -Key 'reporting.default_format' -Value 'x' } | Should -Throw 'default_format must be one of: json, md, cbom, html'
             { Set-BoabConfigValue -Config $cfg -Key 'nope' -Value 'x' } | Should -Throw 'unknown config key: nope'
         }
     }

@@ -101,9 +101,9 @@ pub fn set_value(cfg: &mut Config, key: &str, value: &str) -> Result<()> {
             cfg.scanner.air_gapped = value.parse().context("air_gapped must be true or false")?;
         }
         "reporting.default_format" => {
-            if !matches!(value, "json" | "md" | "cbom") {
+            if !matches!(value, "json" | "md" | "cbom" | "html") {
                 return Err(anyhow::anyhow!(
-                    "default_format must be one of: json, md, cbom"
+                    "default_format must be one of: json, md, cbom, html"
                 ));
             }
             cfg.reporting.default_format = value.to_string();

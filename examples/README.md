@@ -23,10 +23,12 @@ at your own systems.
 5. Run `boab scan tls` against the public badssl.com endpoints
    (expired, self-signed, RSA-2048, RSA-4096, SHA-1 chain,
    TLS 1.0, TLS 1.1, plus the healthy baseline).
-6. Generate a 2030 transition plan and emit three reports:
+6. Generate a 2030 transition plan and emit four reports:
    - `demo/reports/inventory.json` — native Boab schema
    - `demo/reports/cbom.cdx.json` — CycloneDX 1.6 CBOM
    - `demo/reports/readiness.md` — board-ready Markdown
+   - `demo/reports/readiness.html` — self-contained executive HTML
+     report (open it in any browser, or print it to PDF)
 
 The committed `demo/reports/` directory is the output of one such run,
 so you can browse it without installing anything.
@@ -55,8 +57,9 @@ weak certs, then the badssl.com server-leaf certificates. Top of the
 list is the RSA-1024 + SHA-1 cert which the rubric flags as priority
 5.4, triage tier 3.
 
-See `demo/reports/readiness.md` for the full board-pack output and
-`demo/inventory.txt` for the inventory table snippet.
+See `demo/reports/readiness.html` (or `readiness.md`) for the full
+board-pack output and `demo/inventory.txt` for the inventory table
+snippet.
 
 ## Caveats
 

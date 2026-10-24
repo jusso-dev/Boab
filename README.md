@@ -10,7 +10,8 @@ prepare for and execute the transition to post-quantum cryptography
 produces a deduplicated cryptographic inventory; scores assets against
 a published risk rubric aligned to ASD guidance; generates transition
 plans against the 2026, 2028, and 2030 milestones; and exports the
-result as JSON, CycloneDX 1.6 CBOM, and Markdown reports.
+result as JSON, CycloneDX 1.6 CBOM, Markdown, and self-contained HTML
+executive reports.
 
 Boab is air-gapped by default. The only outbound network connections
 it makes are TLS handshakes against targets you supply, and, only if
@@ -119,7 +120,8 @@ organisations:
    plan preserves user edits (target dates, assignees, notes,
    status) when the underlying asset is unchanged.
 5. **Report.** Exports the workspace state as native JSON, CycloneDX
-   1.6 CBOM, or a board-ready Markdown readiness report.
+   1.6 CBOM, a board-ready Markdown readiness report, or a
+   self-contained HTML report themed for executives.
 
 ## Scoring rubric
 
@@ -175,13 +177,15 @@ Windows (x86_64 MSVC) when releases are cut.
 ### PowerShell module
 
 A PowerShell 7.2+ port lives in [`powershell/`](powershell/README.md). It
-reads and writes the same `.boab/` workspace and produces the same JSON,
-CycloneDX CBOM, Markdown and console output as the Rust binary:
+is a standalone alternative to the binary: no Rust toolchain or other
+dependencies are needed. It reads and writes the same `.boab/` workspace and
+produces the same JSON, CycloneDX CBOM, Markdown, HTML and console output as the
+Rust binary:
 
 ```powershell
 Import-Module ./powershell/Boab
 Invoke-Boab scan codebase ./services/payments   # same argv as `boab`
-pwsh ./powershell/boab.ps1 report --format md --output readiness.md
+pwsh ./powershell/boab.ps1 report --format html --output readiness.html
 ```
 
 Idiomatic cmdlets (`Add-BoabSystem`, `Start-BoabTlsScan`, `New-BoabPlan`,
@@ -219,10 +223,11 @@ boab inventory list --pqc-status vulnerable
 # 7. Generate a transition plan for the 2028 milestone.
 boab plan generate --milestone 2028
 
-# 8. Produce the three outputs: machine-readable, supply chain, and board pack.
+# 8. Produce the outputs: machine-readable, supply chain, and board pack.
 boab report --format json   --output board-pack.json
 boab report --format cbom   --output bom.cdx.json
 boab report --format md     --output readiness.md
+boab report --format html   --output readiness.html
 ```
 
 ## Example output
@@ -248,6 +253,9 @@ directory is the output of one such run:
   1.6 CBOM, each entry tagged with `nistQuantumSecurityLevel`.
 - [`readiness.md`](./examples/demo/reports/readiness.md) — the
   board-ready Markdown readiness report, ranked by LATICE priority.
+- [`readiness.html`](./examples/demo/reports/readiness.html) — the
+  self-contained executive HTML report (download and open it in a
+  browser).
 
 Sample inventory rows:
 
@@ -307,6 +315,43 @@ pack or pasted into a SteerCo update. Sections: executive summary,
 ASD LATICE phase status, top 25 priority assets, triage tier
 distribution, PQC status distribution, vendor PQC dependency
 summary, plans on file, methodology appendix, generated-at footer.
+
+### HTML executive report
+
+`boab report --format html` writes `readiness.html`, a single
+self-contained page for executives, boards and SteerCo packs. It has
+inline CSS and SVG, no external fonts, scripts or images, and a
+Content-Security-Policy that blocks all network requests, so it can be
+emailed, attached to a board paper, or opened on an air-gapped
+machine. It follows the reader's light or dark preference and prints
+cleanly to A4 PDF. Collapsed appendices expand automatically when
+printed.
+
+Sections:
+
+- **Overall posture**: a one-line verdict (critical, high, moderate,
+  or low exposure) with the share of quantum-vulnerable or unclassified
+  assets as the headline figure.
+- **Key figures**: assets inventoried, quantum-vulnerable assets,
+  Tier 1 and 2 assets to migrate by 2028, classically broken
+  algorithms, and ASD milestones with a plan on file.
+- **Recommended actions** generated from the inventory, in priority
+  order.
+- **Quantum exposure** by PQC status and **migration priority** by
+  triage tier, as labelled bar charts.
+- **ASD transition milestones** for 2026, 2028 and 2030, with plan
+  status.
+- **Highest-priority assets**: the top 10 with status, priority,
+  tier and recommended action.
+- **Exposure by business system**, including SOCI flags and assets
+  not yet linked to a system.
+- **Transition plans** with item progress, and **vendor PQC
+  dependencies**.
+- **Appendices**: the full ranked inventory and the scoring
+  methodology.
+
+The Rust binary and the PowerShell module produce byte-identical
+HTML.
 
 ## What Boab checks
 

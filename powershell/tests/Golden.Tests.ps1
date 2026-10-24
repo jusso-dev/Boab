@@ -3,7 +3,7 @@
 # Byte-level parity against outputs produced by the Rust implementation:
 #  1. fixtures/golden/workspace - built by powershell/tools/golden-gen (Rust library)
 #     from the scan JSON in fixtures/scans.
-#  2. examples/demo - the committed demo run (reports/*.json|md and inventory.txt).
+#  2. examples/demo - the committed demo run (reports/*.json|md|html and inventory.txt).
 # UUIDs and timestamps are normalised before comparing; everything else must match.
 
 BeforeAll {
@@ -69,6 +69,7 @@ Describe 'Golden workspace built by the Rust library' {
             Export-BoabJsonReport -Workspace $ws -Path (Join-Path $reports 'report.json')
             Export-BoabCbomReport -Workspace $ws -Path (Join-Path $reports 'bom.cdx.json')
             Export-BoabMarkdownReport -Workspace $ws -Path (Join-Path $reports 'readiness.md')
+            Export-BoabHtmlReport -Workspace $ws -Path (Join-Path $reports 'readiness.html')
         }
         $script:Ps = Join-Path $script:Ws '.boab'
     }
@@ -107,7 +108,7 @@ Describe 'Golden workspace built by the Rust library' {
         foreach ($k in $expected.Keys) { Assert-SameNormalized -Label "plan $k" -Expected $expected[$k] -Actual $actual[$k] }
     }
 
-    It 'report <_> matches' -ForEach @('report.json', 'bom.cdx.json', 'readiness.md') {
+    It 'report <_> matches' -ForEach @('report.json', 'bom.cdx.json', 'readiness.md', 'readiness.html') {
         Assert-SameNormalized -Label $_ -Expected (Read-TestText (Join-Path $script:GoldenWs 'reports' $_)) -Actual (Read-TestText (Join-Path $script:Ps 'reports' $_))
     }
 }
@@ -167,6 +168,12 @@ Describe 'Committed demo outputs (examples/demo)' {
         $out = Join-Path $script:DemoWs 'readiness.md'
         (Invoke-BoabTest --workspace $script:DemoWs report --format md --output $out).ExitCode | Should -Be 0
         Assert-SameNormalized -Label 'readiness.md' -Expected (Read-TestText (Join-Path $script:DemoDir 'reports' 'readiness.md')) -Actual (Read-TestText $out)
+    }
+
+    It 'regenerates reports/readiness.html' {
+        $out = Join-Path $script:DemoWs 'readiness.html'
+        (Invoke-BoabTest --workspace $script:DemoWs report --format html --output $out).ExitCode | Should -Be 0
+        Assert-SameNormalized -Label 'readiness.html' -Expected (Read-TestText (Join-Path $script:DemoDir 'reports' 'readiness.html')) -Actual (Read-TestText $out)
     }
 
     It 'reproduces inventory.txt (inventory list table) exactly' {

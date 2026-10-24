@@ -146,13 +146,20 @@ of the bundled registry. There is no outbound fetching.
 boab report --format json --output board-pack.json
 boab report --format cbom --output bom.cdx.json
 boab report --format md --output readiness.md
+boab report --format html --output readiness.html
 ```
 
-The three formats:
+The four formats:
 
 - `json`: native Boab schema. Best for diffing across runs.
 - `cbom`: CycloneDX 1.6 cryptographic BOM, JSON-encoded.
 - `md`: board-ready Markdown readiness report.
+- `html`: a self-contained HTML report for executives and boards.
+  It has an overall posture verdict, key figures, recommended actions,
+  exposure and priority charts, ASD milestone status, top risks,
+  per-system exposure, plans and vendor dependencies. The file needs no
+  network access, follows light or dark mode, and prints cleanly to
+  PDF.
 
 Defaults land in `.boab/reports/` if `--output` is omitted.
 

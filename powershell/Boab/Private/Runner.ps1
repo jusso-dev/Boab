@@ -314,6 +314,7 @@ function Get-BoabReportDefaultName {
         'json' { return 'report.json' }
         'cbom' { return 'bom.cdx.json' }
         'md' { return 'readiness.md' }
+        'html' { return 'readiness.html' }
     }
     throw (New-BoabException ("unknown report format: {0}" -f $Format))
 }
@@ -330,6 +331,7 @@ function Export-BoabReportFile {
         'json' { Export-BoabJsonReport -Workspace $Workspace -Path $target }
         'cbom' { Export-BoabCbomReport -Workspace $Workspace -Path $target }
         'md' { Export-BoabMarkdownReport -Workspace $Workspace -Path $target }
+        'html' { Export-BoabHtmlReport -Workspace $Workspace -Path $target }
     }
     @{ Format = $fmt; Display = $display; FullPath = $target }
 }

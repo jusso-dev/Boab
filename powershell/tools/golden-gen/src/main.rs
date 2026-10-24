@@ -7,6 +7,7 @@
 //!   boab-golden-gen numbers  <out.json>
 //!   boab-golden-gen scores   <out.json>
 //!   boab-golden-gen workspace <fixture-scans-dir> <workspace-root>
+//!   boab-golden-gen demo-html <report.json> <out.html>
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,7 +28,8 @@ fn main() -> Result<()> {
         Some("numbers") => numbers(Path::new(&args[2])),
         Some("scores") => scores(Path::new(&args[2])),
         Some("workspace") => workspace(Path::new(&args[2]), Path::new(&args[3])),
-        _ => anyhow::bail!("usage: boab-golden-gen numbers|scores|workspace ..."),
+        Some("demo-html") => demo_html(Path::new(&args[2]), Path::new(&args[3])),
+        _ => anyhow::bail!("usage: boab-golden-gen numbers|scores|workspace|demo-html ..."),
     }
 }
 
@@ -259,5 +261,34 @@ fn workspace(scans_dir: &Path, root: &Path) -> Result<()> {
     report::json::write(&ws, &reports.join("report.json"))?;
     report::cbom::write(&ws, &reports.join("bom.cdx.json"))?;
     report::markdown::write(&ws, &reports.join("readiness.md"))?;
+    report::html::write(&ws, &reports.join("readiness.html"))?;
+    Ok(())
+}
+
+/// Rebuild a workspace from a committed native JSON report (as the Pester demo
+/// test does) and render the HTML report from it.
+fn demo_html(report_path: &Path, out: &Path) -> Result<()> {
+    let doc: Value = storage::read_json(report_path)?;
+    let root = std::env::temp_dir().join(format!("boab-demo-html-{}", uuid::Uuid::new_v4()));
+    fs::create_dir_all(&root)?;
+    let (ws, _) = Workspace::init(&root, true)?;
+    let systems: Vec<System> = serde_json::from_value(doc["systems"].clone())?;
+    storage::save_systems(&ws, &systems)?;
+    let inventory: Vec<CryptoAsset> = serde_json::from_value(doc["inventory"].clone())?;
+    storage::save_inventory(&ws, &inventory)?;
+    let plans: Vec<boab::model::plan::Plan> = serde_json::from_value(doc["plans"].clone())?;
+    for p in &plans {
+        storage::save_plan(&ws, p)?;
+    }
+    for s in doc["scans"].as_array().cloned().unwrap_or_default() {
+        let scan: Scan = serde_json::from_value(json!({
+            "id": s["id"], "name": s["name"], "scan_type": s["scan_type"], "status": s["status"],
+            "target": s["target"], "config": {}, "started_at": s["started_at"], "completed_at": null,
+            "findings": [], "error_message": null
+        }))?;
+        storage::save_scan(&ws, &scan)?;
+    }
+    report::html::write(&ws, out)?;
+    fs::remove_dir_all(&root)?;
     Ok(())
 }

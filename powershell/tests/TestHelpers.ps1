@@ -104,8 +104,9 @@ function Get-BoabFixtureScan {
 function ConvertTo-NormalizedText {
     <#
     Make two Boab outputs comparable: UUIDs are renamed in order of first
-    appearance, RFC 3339 timestamps become <ts>, and optional literal paths are
-    replaced. With -Table, runs of padding and border characters are collapsed
+    appearance, RFC 3339 timestamps become <ts>, HTML report dates such as
+    "4 October 2026" become <date>, and optional literal paths are replaced.
+    With -Table, runs of padding and border characters are collapsed
     so variable-width timestamps do not change column widths.
     #>
     param(
@@ -124,6 +125,7 @@ function ConvertTo-NormalizedText {
             $map[$key]
         })
     $t = [regex]::Replace($t, '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})', '<ts>')
+    $t = [regex]::Replace($t, '\b\d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}\b', '<date>')
     if ($Table) {
         $t = [regex]::Replace($t, ' {2,}', ' ')
         $t = [regex]::Replace($t, '─+', '─')

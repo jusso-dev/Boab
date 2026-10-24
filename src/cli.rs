@@ -52,7 +52,7 @@ pub enum Command {
     /// Inspect the bundled vendor PQC registry and customer overrides.
     #[command(subcommand)]
     Vendor(VendorCommand),
-    /// Export the workspace state as JSON, CycloneDX 1.6 CBOM, or Markdown.
+    /// Export the workspace state as JSON, CycloneDX 1.6 CBOM, Markdown, or HTML.
     Report(ReportArgs),
     /// Upload a CycloneDX CBOM to an HTTPS endpoint you configure.
     Push(PushArgs),
@@ -284,7 +284,7 @@ pub struct VendorSearchArgs {
 
 #[derive(Debug, Args)]
 pub struct ReportArgs {
-    /// Output format: json, cbom, or md.
+    /// Output format: json, cbom, md, or html.
     #[arg(long)]
     pub format: String,
     /// Output path. Defaults to .boab/reports/.

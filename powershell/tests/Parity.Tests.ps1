@@ -217,7 +217,9 @@ Describe 'Rust binary vs PowerShell module' -Skip:(-not $script:RustBin) {
         Invoke-ParityStep @('report', '--format', 'md')
         Invoke-ParityStep @('report', '--format', 'JSON', '-o', '{ws}/out.json')
         Invoke-ParityStep @('report', '--format', 'html')
+        Invoke-ParityStep @('report', '--format', 'pdf')
         Assert-ParityFile '.boab/reports/report.json'
+        Assert-ParityFile '.boab/reports/readiness.html'
         Assert-ParityFile '.boab/reports/bom.cdx.json'
         Assert-ParityFile '.boab/reports/readiness.md'
         Assert-ParityFile 'out.json'
