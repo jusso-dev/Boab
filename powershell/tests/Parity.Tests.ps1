@@ -134,6 +134,8 @@ Describe 'Rust binary vs PowerShell module' -Skip:(-not $script:RustBin) {
         Invoke-ParityStep @('init')
         Invoke-ParityStep @('init')
         Invoke-ParityStep @('init', '--force')
+        Invoke-ParityStep @('report', '--format', 'html', '-o', '{ws}/empty.html')
+        Assert-ParityFile 'empty.html'
         Invoke-ParityStep @('system', 'add', '--name', 'Demo Payments', '--classification', 'protected', '--criticality', 'mission_critical', '--soci', '--lifetime-years', '25')
         Invoke-ParityStep @('system', 'add', '--name', 'HR | People', '--description', 'a "quoted" thing', '--classification', 'official-sensitive', '--criticality', 'essential')
         Invoke-ParityStep @('system', 'list') -Table
@@ -206,6 +208,7 @@ Describe 'Rust binary vs PowerShell module' -Skip:(-not $script:RustBin) {
         Invoke-ParityStep @('vendor', 'search', 'azure') -Table
         Invoke-ParityStep @('vendor', 'add', '--vendor', 'Microsoft', '--product', 'Azure', '--pqc-status', 'resistant', '--target-date', '2026-Q4')
         Invoke-ParityStep @('vendor', 'add', '--vendor', 'Acme', '--product', 'Widget', '--pqc-status', 'HYBRID', '--source-url', 'https://example.com')
+        Invoke-ParityStep @('vendor', 'add', '--vendor', '<b>Evil</b> & "co"', '--product', "it's", '--pqc-status', 'unknown', '--source-url', 'javascript:alert(1)', '--source-note', '</td><script>x</script>')
         Invoke-ParityStep @('vendor', 'search', 'a') -Table
         Invoke-ParityStep @('vendor', 'search', 'zzz')
         Assert-ParityFile '.boab/vendor-overrides.json'

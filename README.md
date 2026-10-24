@@ -321,9 +321,10 @@ summary, plans on file, methodology appendix, generated-at footer.
 `boab report --format html` writes `readiness.html`, a single
 self-contained page for executives, boards and SteerCo packs. It has
 inline CSS and SVG, no external fonts, scripts or images, and a
-Content-Security-Policy that blocks all network requests, so it can be
-emailed, attached to a board paper, or opened on an air-gapped
-machine. It follows the reader's light or dark preference and prints
+Content-Security-Policy that stops it loading anything from the
+network, so it can be emailed, attached to a board paper, or opened on
+an air-gapped machine. The only outbound links are the vendor roadmap
+sources, which open only if the reader clicks them. It follows the reader's light or dark preference and prints
 cleanly to A4 PDF. Collapsed appendices expand automatically when
 printed.
 
@@ -333,14 +334,15 @@ Sections:
   or low exposure) with the share of quantum-vulnerable or unclassified
   assets as the headline figure.
 - **Key figures**: assets inventoried, quantum-vulnerable assets,
-  Tier 1 and 2 assets to migrate by 2028, classically broken
-  algorithms, and ASD milestones with a plan on file.
+  Tier 1 and 2 assets to migrate by 2028, assets using classically
+  broken algorithms (flagged *Broken today* wherever they appear), and
+  transition plans on file.
 - **Recommended actions** generated from the inventory, in priority
   order.
 - **Quantum exposure** by PQC status and **migration priority** by
   triage tier, as labelled bar charts.
 - **ASD transition milestones** for 2026, 2028 and 2030, with plan
-  status.
+  status and completion.
 - **Highest-priority assets**: the top 10 with status, priority,
   tier and recommended action.
 - **Exposure by business system**, including SOCI flags and assets

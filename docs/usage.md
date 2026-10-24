@@ -157,9 +157,9 @@ The four formats:
 - `html`: a self-contained HTML report for executives and boards.
   It has an overall posture verdict, key figures, recommended actions,
   exposure and priority charts, ASD milestone status, top risks,
-  per-system exposure, plans and vendor dependencies. The file needs no
-  network access, follows light or dark mode, and prints cleanly to
-  PDF.
+  per-system exposure, plans and vendor dependencies. The file loads
+  nothing from the network, follows light or dark mode, and prints
+  cleanly to PDF.
 
 Defaults land in `.boab/reports/` if `--output` is omitted.
 

@@ -6,10 +6,11 @@
 $script:BoabHtmlTopAssets = 10
 
 # sha256 of $script:BoabHtmlPrintScript, allowed by the page's Content-Security-Policy.
-$script:BoabHtmlPrintScriptHash = 'sha256-YBT/WzGBpdvp2oDaNuOBJuaAuy6y0df6zOX2949BH/4='
+$script:BoabHtmlPrintScriptHash = 'sha256-8U7RJlWgu7WepxDnJbVVXadHk7k8MSogCSxej3/N0oo='
 
-# Expands collapsed appendices when the report is printed or saved as PDF.
-$script:BoabHtmlPrintScript = 'window.addEventListener(''beforeprint'',function(){document.querySelectorAll(''details'').forEach(function(d){d.open=true;});});'
+# Appendices are written expanded so they still print without JavaScript; on
+# screen this collapses them, and expands them again for printing or PDF.
+$script:BoabHtmlPrintScript = 'document.querySelectorAll(''details[data-collapse]'').forEach(function(d){d.open=false;});window.addEventListener(''beforeprint'',function(){document.querySelectorAll(''details'').forEach(function(d){d.open=true;});});'
 
 $script:BoabHtmlMonths = @('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
 
@@ -100,8 +101,9 @@ main{padding:28px 0 8px}
 .b-resistant .pip,.b-good .pip{background:var(--good)}
 .b-symmetric .pip{background:var(--symmetric)}
 .b-t2 .pip{background:var(--serious)}
-.b-t4 .pip{background:var(--neutral)}
+.b-t4 .pip,.b-neutral .pip{background:var(--neutral)}
 .tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:var(--brand-2);color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.04em;vertical-align:1px}
+.tag-broken{background:var(--critical)}
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th{text-align:left;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
@@ -123,7 +125,7 @@ summary{cursor:pointer;font-weight:600;color:var(--hybrid);padding:4px 0;margin-
 .formula{background:var(--track);border-radius:8px;padding:10px 14px}
 footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.milestones{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}.hero-figure{text-align:left;max-width:none}}
-@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
+@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:25%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:24%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
 '@ + "`n"
 
 function ConvertTo-BoabHtmlEscaped {
@@ -290,7 +292,7 @@ function Add-BoabHtmlKpi {
 
 function Add-BoabHtmlAssetTable {
     param([System.Text.StringBuilder]$Sb, [AllowEmptyCollection()]$Rows, $Systems, [string]$Empty)
-    [void]$Sb.Append("<div class=`"tw`"><table>`n<thead><tr><th class=`"num`">#</th><th>Asset</th><th>System</th><th>Status</th><th>Priority</th><th>Tier</th><th>Recommended action</th></tr></thead>`n<tbody>`n")
+    [void]$Sb.Append("<div class=`"tw`"><table class=`"assets`">`n<colgroup><col class=`"c-n`"><col class=`"c-a`"><col class=`"c-s`"><col class=`"c-st`"><col class=`"c-p`"><col class=`"c-t`"><col class=`"c-r`"></colgroup>`n<thead><tr><th class=`"num`">#</th><th>Asset</th><th>System</th><th>Status</th><th>Priority</th><th>Tier</th><th>Recommended action</th></tr></thead>`n<tbody>`n")
     $n = 0
     foreach ($row in $Rows) {
         $n++
@@ -298,16 +300,39 @@ function Add-BoabHtmlAssetTable {
         $p = Format-BoabFixed -Value ([double]$score.priority) -Decimals 1
         $sys = Find-BoabSystemById -Systems $Systems -Id $asset.system_id
         $sysName = if ($null -ne $sys) { ConvertTo-BoabHtmlEscaped $sys.name } else { '&ndash;' }
-        [void]$Sb.Append('<tr><td class="num">' + $n + '</td><td><span class="an">' + (ConvertTo-BoabHtmlEscaped $asset.name) +
+        $display = Get-BoabHtmlDisplayName $asset.name
+        $broken = [int]$score.algorithm_vulnerability -ge 10
+        $brokenTag = if ($broken) { ' <span class="tag tag-broken">Broken today</span>' } else { '' }
+        $subject = if ($null -ne $display.Subject) { ' &middot; ' + (ConvertTo-BoabHtmlEscaped $display.Subject) } else { '' }
+        $action = if ($broken) { 'Replace now: already weak against conventional (non-quantum) attacks' } else { ConvertTo-BoabHtmlEscaped $score.recommended_action }
+        [void]$Sb.Append('<tr><td class="num">' + $n + '</td><td><span class="an" title="' + (ConvertTo-BoabHtmlEscaped $asset.name) + '">' + (ConvertTo-BoabHtmlEscaped $display.Short) + $brokenTag +
             '</span><span class="aa">' + (Get-BoabHtmlAssetTypeLabel $asset.asset_type) + ' &middot; <code>' + (ConvertTo-BoabHtmlEscaped $asset.algorithm_name) +
-            '</code></span></td><td>' + $sysName + '</td><td>' + (Get-BoabHtmlStatusBadge $asset.pqc_status) +
+            '</code>' + $subject + '</span></td><td>' + $sysName + '</td><td>' + (Get-BoabHtmlStatusBadge $asset.pqc_status) +
             '</td><td><span class="score"><span class="meter"><span class="mf t-' + $score.triage_tier + '" style="width:' + [int]::Parse($p.Replace('.', ''), [System.Globalization.CultureInfo]::InvariantCulture) +
-            '%"></span></span>' + $p + '</span></td><td>' + (Get-BoabHtmlTierBadge $score.triage_tier) + '</td><td>' + (ConvertTo-BoabHtmlEscaped $score.recommended_action) + "</td></tr>`n")
+            '%"></span></span>' + $p + '</span></td><td>' + (Get-BoabHtmlTierBadge $score.triage_tier) + '</td><td>' + $action + "</td></tr>`n")
     }
     if ($n -eq 0) {
         [void]$Sb.Append('<tr><td colspan="7" class="empty">' + $Empty + "</td></tr>`n")
     }
     [void]$Sb.Append("</tbody>`n</table></div>`n")
+}
+
+function Get-BoabHtmlDisplayName {
+    # Scanner asset names often join a location and a subject, e.g.
+    # "/abs/path/cert.pem|CN=example". Returns the part to headline (the file
+    # name for absolute paths) and the subject, if any.
+    param([string]$Name)
+    $head = $Name; $subject = $null
+    $bar = $Name.IndexOf('|')
+    if ($bar -ge 0) { $head = $Name.Substring(0, $bar); $subject = $Name.Substring($bar + 1) }
+    $isPath = $head.StartsWith('/', [System.StringComparison]::Ordinal) -or $head.StartsWith('\', [System.StringComparison]::Ordinal) -or
+        ($head.Length -ge 3 -and [int]$head[0] -lt 128 -and [char]::IsLetter($head[0]) -and $head[1] -eq ':' -and ($head[2] -eq '\' -or $head[2] -eq '/'))
+    $short = $head
+    if ($isPath) {
+        $base = $head.Substring($head.LastIndexOfAny([char[]]@('/', '\')) + 1)
+        if ($base.Length -gt 0) { $short = $base }
+    }
+    @{ Short = $short; Subject = $subject }
 }
 
 function Add-BoabHtmlSystemRow {
@@ -372,8 +397,10 @@ function New-BoabHtmlReport {
     $t1 = $tierCounts[0]; $t2 = $tierCounts[1]; $t3 = $tierCounts[2]
     $planYears = @{}
     foreach ($p in $plans) { $planYears[(Get-BoabMilestoneYear $p.milestone)] = $true }
+    # Any plan on file meets the 2026 "refined transition plan" milestone.
     $covered = 0
-    foreach ($y in @(2026, 2028, 2030)) { if ($planYears.ContainsKey($y)) { $covered++ } }
+    if ($plans.Count -gt 0) { $covered++ }
+    foreach ($y in @(2028, 2030)) { if ($planYears.ContainsKey($y)) { $covered++ } }
     $soci = 0
     foreach ($s in $systems) { if ($s.is_soci) { $soci++ } }
 
@@ -383,7 +410,7 @@ function New-BoabHtmlReport {
     # Document head
     & $add "<!DOCTYPE html>`n<html lang=`"en`">`n<head>`n<meta charset=`"utf-8`">`n"
     & $add "<meta name=`"viewport`" content=`"width=device-width, initial-scale=1`">`n"
-    & $add ("<meta http-equiv=`"Content-Security-Policy`" content=`"default-src 'none'; style-src 'unsafe-inline'; script-src '" + $script:BoabHtmlPrintScriptHash + "'; img-src data:`">`n")
+    & $add ("<meta http-equiv=`"Content-Security-Policy`" content=`"default-src 'none'; style-src 'unsafe-inline'; script-src '" + $script:BoabHtmlPrintScriptHash + "'; base-uri 'none'; form-action 'none'`">`n")
     & $add "<meta name=`"color-scheme`" content=`"light dark`">`n"
     & $add ("<meta name=`"generator`" content=`"Boab {0}`">`n" -f $version)
     & $add "<title>Post-Quantum Cryptography Readiness Report</title>`n"
@@ -448,22 +475,22 @@ function New-BoabHtmlReport {
     Add-BoabHtmlKpi -Sb $h -Label 'Quantum-vulnerable' -Value (Format-BoabHtmlGroup $exposed) -Sub ('{0}% of inventory' -f $pctText)
     Add-BoabHtmlKpi -Sb $h -Label 'Migrate by 2028' -Value (Format-BoabHtmlGroup ($t1 + $t2)) -Sub ('Tier 1: {0} &middot; Tier 2: {1}' -f (Format-BoabHtmlGroup $t1), (Format-BoabHtmlGroup $t2))
     Add-BoabHtmlKpi -Sb $h -Label 'Classically broken' -Value (Format-BoabHtmlGroup $broken) -Sub 'weak even without a quantum computer'
-    Add-BoabHtmlKpi -Sb $h -Label 'Milestones planned' -Value ('{0} of 3' -f $covered) -Sub ('{0} on file' -f (Format-BoabHtmlPlural $plans.Count 'plan' 'plans'))
+    Add-BoabHtmlKpi -Sb $h -Label 'Plans on file' -Value (Format-BoabHtmlGroup $plans.Count) -Sub ('covering {0} of 3 ASD milestones' -f $covered)
     & $add "</section>`n"
 
     # Key actions
     $actions = New-BoabList
     if ($t1 -gt 0) {
-        $actions.Add(('<strong>Migrate {0} now.</strong> {1} high quantum exposure with a practical migration path and must be completed before the 2028 milestone.' -f (Format-BoabHtmlPlural $t1 'Tier 1 asset' 'Tier 1 assets'), $(if ($t1 -eq 1) { 'It combines' } else { 'They combine' })))
+        $actions.Add(('<strong>Migrate {0} now.</strong> {1} high quantum exposure with a practical migration path and should be completed before the 2028 milestone.' -f (Format-BoabHtmlPlural $t1 'Tier 1 asset' 'Tier 1 assets'), $(if ($t1 -eq 1) { 'It combines' } else { 'They combine' })))
     }
     if ($broken -gt 0) {
-        $actions.Add(('<strong>Retire {0} using classically broken algorithms</strong> (MD5, SHA-1, RSA-1024, 3DES, RC4). These are exploitable today, independent of quantum timelines.' -f (Format-BoabHtmlPlural $broken 'asset' 'assets')))
+        $actions.Add(('<strong>Replace {0} using classically broken algorithms now</strong> (such as MD5, SHA-1, RSA-1024, 3DES and RC4). These are already weak against conventional attacks, whatever their quantum triage tier, and are marked <em>Broken today</em> below.' -f (Format-BoabHtmlPlural $broken 'asset' 'assets')))
     }
     if ($t2 -gt 0) {
         $actions.Add(('<strong>Schedule {0} inside the 2028 window</strong>, starting with hardware-locked and long-lived systems that take longest to change.' -f (Format-BoabHtmlPlural $t2 'Tier 2 asset' 'Tier 2 assets')))
     }
-    if (-not $planYears.ContainsKey(2026)) {
-        $actions.Add('<strong>Agree a refined transition plan</strong> to meet the ASD end-of-2026 milestone (<code>boab plan generate --milestone 2026</code>).')
+    if ($plans.Count -eq 0) {
+        $actions.Add('<strong>Generate and agree a transition plan</strong> to meet the ASD end-of-2026 milestone for a refined plan (<code>boab plan generate --milestone 2030</code> covers every tier).')
     }
     if ($unknown -gt 0) {
         $actions.Add(('<strong>Classify {0} with unknown quantum status.</strong> Unknowns are scored conservatively until they are reviewed.' -f (Format-BoabHtmlPlural $unknown 'asset' 'assets')))
@@ -523,20 +550,31 @@ function New-BoabHtmlReport {
     & $add "</ul>`n</section>`n</div>`n"
 
     # Milestones
-    & $add "<section class=`"card`">`n<h2>ASD transition milestones</h2>`n<p class=`"sub`">Australian Signals Directorate direction for post-quantum migration</p>`n<ol class=`"milestones`">`n"
+    & $add "<section class=`"card`">`n<h2>ASD transition milestones</h2>`n<p class=`"sub`">Australian Signals Directorate (ASD) guidance for post-quantum migration</p>`n<ol class=`"milestones`">`n"
     $milestones = @(
         @(2026, 'Refined transition plan', 'Cryptographic inventory complete and a prioritised, funded transition plan agreed.'),
         @(2028, 'Implementation begins', 'Tier 1 and Tier 2 assets migrated or actively in flight.'),
         @(2030, 'Implementation complete', 'Classical public-key cryptography retired from in-scope systems.')
     )
     foreach ($m in $milestones) {
-        $badge = if ($planYears.ContainsKey($m[0])) { Get-BoabHtmlBadge -Class 'good' -Label 'Plan on file' } else { Get-BoabHtmlBadge -Class 'warning' -Label 'Plan outstanding' }
+        $items = 0; $done = 0
+        foreach ($p in $plans) {
+            if ((Get-BoabMilestoneYear $p.milestone) -ne $m[0]) { continue }
+            foreach ($it in $p.items) { $items++; if ($it.status -ceq 'complete') { $done++ } }
+        }
+        if ($m[0] -eq 2026) {
+            $badge = if ($plans.Count -eq 0) { Get-BoabHtmlBadge -Class 'warning' -Label 'Plan outstanding' } else { Get-BoabHtmlBadge -Class 'good' -Label 'Plan on file' }
+        }
+        elseif (-not $planYears.ContainsKey($m[0])) { $badge = Get-BoabHtmlBadge -Class 'warning' -Label 'Plan outstanding' }
+        elseif ($items -eq 0) { $badge = Get-BoabHtmlBadge -Class 'neutral' -Label 'Plan on file &middot; no items' }
+        elseif ($done -eq $items) { $badge = Get-BoabHtmlBadge -Class 'good' -Label 'All plan items complete' }
+        else { $badge = Get-BoabHtmlBadge -Class 'neutral' -Label ('Plan on file &middot; {0}% complete' -f [long][math]::Floor(([long]$done * 100) / $items)) }
         & $add ("<li><span class=`"year`">{0}</span><span class=`"mt`">{1}</span><span class=`"md`">{2}</span>{3}</li>`n" -f $m[0], $m[1], $m[2], $badge)
     }
     & $add "</ol>`n</section>`n"
 
     # Top assets
-    & $add ("<section class=`"card`">`n<h2>Highest-priority assets</h2>`n<p class=`"sub`">Top {0} by LATICE priority score (0&ndash;10)</p>`n" -f $script:BoabHtmlTopAssets)
+    & $add ("<section class=`"card`">`n<h2>Highest-priority assets</h2>`n<p class=`"sub`">Top {0} by priority score (0&ndash;10)</p>`n" -f $script:BoabHtmlTopAssets)
     $top = New-BoabList
     for ($i = 0; $i -lt [math]::Min($script:BoabHtmlTopAssets, $total); $i++) { $top.Add($scored[$i]) }
     Add-BoabHtmlAssetTable -Sb $h -Rows $top -Systems $systems -Empty 'No assets inventoried yet.'
@@ -581,7 +619,7 @@ function New-BoabHtmlReport {
             }
             $pct = if ($items -eq 0) { 0 } else { [long][math]::Floor(([long]$done * 100) / $items) }
             & $add ("<tr><td>{0}</td><td>{1}</td><td class=`"num`">{2}</td><td class=`"num`">{3}</td><td class=`"num`">{4}</td><td><span class=`"meter`"><span class=`"mf`" style=`"width:{5}%`"></span></span> {5}%</td><td><time datetime=`"{6}`">{7}</time></td></tr>`n" -f (ConvertTo-BoabHtmlEscaped $p.name),
-                (Get-BoabMilestoneYear $p.milestone), (Format-BoabHtmlGroup $items), (Format-BoabHtmlGroup $doing), (Format-BoabHtmlGroup $done), $pct, $p.generated_at, (Format-BoabHtmlStoredDate $p.generated_at))
+                (Get-BoabMilestoneYear $p.milestone), (Format-BoabHtmlGroup $items), (Format-BoabHtmlGroup $doing), (Format-BoabHtmlGroup $done), $pct, (ConvertTo-BoabHtmlEscaped $p.generated_at), (Format-BoabHtmlStoredDate $p.generated_at))
         }
         & $add "</tbody>`n</table></div>`n"
     }
@@ -604,7 +642,7 @@ function New-BoabHtmlReport {
     }
     & $add "</ul>`n"
     if ($vendorTotal -gt 0) {
-        & $add ("<details>`n<summary>View all {0} vendor products</summary>`n" -f (Format-BoabHtmlGroup $vendorTotal))
+        & $add ("<details open data-collapse>`n<summary>View all {0} vendor products</summary>`n" -f (Format-BoabHtmlGroup $vendorTotal))
         & $add "<div class=`"tw`"><table>`n<thead><tr><th>Vendor</th><th>Product</th><th>Status</th><th>Target</th><th>Source</th></tr></thead>`n<tbody>`n"
         foreach ($e in $registry.entries) {
             if ($null -ne $e.source_url -and (Test-BoabHtmlWebUrl $e.source_url)) {
@@ -628,7 +666,7 @@ function New-BoabHtmlReport {
         & $add "<p class=`"empty`">No assets inventoried yet.</p>`n"
     }
     else {
-        & $add ("<details>`n<summary>View all {0}</summary>`n" -f (Format-BoabHtmlPlural $total 'asset' 'assets'))
+        & $add ("<details open data-collapse>`n<summary>View all {0}</summary>`n" -f (Format-BoabHtmlPlural $total 'asset' 'assets'))
         Add-BoabHtmlAssetTable -Sb $h -Rows $scored -Systems $systems -Empty ''
         & $add "</details>`n"
     }
@@ -636,22 +674,22 @@ function New-BoabHtmlReport {
 
     # Appendix: methodology
     & $add "<section class=`"card method`">`n<h2>Appendix B &middot; Methodology</h2>`n"
-    & $add "<p>Each asset is scored with the ASD LATICE rubric on five axes, each from 0 to 10, and combined into a priority score:</p>`n"
+    & $add "<p>Each asset is scored with Boab&rsquo;s LATICE risk rubric, aligned to ASD guidance, on five axes, each from 0 to 10, and combined into a priority score:</p>`n"
     & $add "<p class=`"formula`"><code>priority = algo_vuln &times; 0.30 + hndl &times; 0.30 + data_sens &times; 0.15 + sys_crit &times; 0.15 + mig_diff &times; 0.10</code></p>`n"
     & $add "<dl>`n"
-    & $add "<dt>Algorithm vulnerability</dt><dd>How exposed the algorithm is: 10 for classically broken primitives, 8&ndash;9 for RSA and elliptic-curve cryptography, 5 for PQ/T hybrids, 1 for ML-KEM, ML-DSA and SLH-DSA, 0 for strong symmetric cryptography.</dd>`n"
+    & $add "<dt>Algorithm vulnerability</dt><dd>How exposed the algorithm is: 10 for classically broken primitives, 8&ndash;9 for RSA and elliptic-curve cryptography, 5 for PQ/T hybrids, 1 for ML-KEM, ML-DSA and SLH-DSA, 0 for strong symmetric cryptography. Unrecognised algorithms score 7 until they are classified.</dd>`n"
     & $add "<dt>Harvest now, decrypt later</dt><dd>How far the data&rsquo;s confidentiality horizon extends past the expected arrival of a cryptographically relevant quantum computer.</dd>`n"
     & $add "<dt>Data sensitivity and system criticality</dt><dd>Taken from the protective marking and criticality of the linked business system; SOCI-regulated systems score as mission critical.</dd>`n"
     & $add "<dt>Migration difficulty</dt><dd>Effort to replace the asset, from trivial configuration changes to hardware-locked devices.</dd>`n"
     & $add "</dl>`n"
-    & $add "<p><strong>Triage tiers.</strong> Tier 1: priority &ge; 7 with a practical migration path, migrate before 2028. Tier 2: priority &ge; 6, or hardware-locked and clearly vulnerable, migrate inside the 2028 window. Tier 3: vulnerable algorithm, replace during 2029&ndash;2030. Tier 4: monitor.</p>`n"
+    & $add "<p><strong>Triage tiers.</strong> Tier 1: priority &ge; 7 with a practical migration path, migrate before 2028. Tier 2: priority &ge; 6, or hardware-locked and clearly vulnerable, migrate inside the 2028 window. Tier 3: vulnerable algorithm, replace during 2029&ndash;2030. Tier 4: monitor. Assets using classically broken algorithms are marked <em>Broken today</em> and should be replaced now, whatever their tier.</p>`n"
     & $add "<p><strong>Overall posture.</strong> Critical when any Tier 1 asset exists; high when any Tier 2 asset exists or at least half of the inventory is quantum-vulnerable or unclassified; moderate when any vulnerable or unclassified asset remains; otherwise low.</p>`n"
     & $add "<p>Refer to the ASD Information Security Manual for control mappings. Boab does not map findings to specific ISM control IDs in this version.</p>`n"
     & $add "</section>`n</main>`n"
 
     # Footer
     $ts = Format-BoabRfc3339 -Value $now.ToUniversalTime()
-    & $add ("<footer class=`"wrap`">Generated by Boab {0} at <time datetime=`"{1}`">{1}</time>. This report is self-contained and makes no network requests.</footer>`n" -f $version, $ts)
+    & $add ("<footer class=`"wrap`">Generated by Boab {0} at <time datetime=`"{1}`">{1}</time>. This report is self-contained and loads nothing from the network.</footer>`n" -f $version, $ts)
     & $add ('<script>' + $script:BoabHtmlPrintScript + "</script>`n")
     & $add "</body>`n</html>`n"
     $h.ToString()

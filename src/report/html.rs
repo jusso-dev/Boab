@@ -25,10 +25,11 @@ use crate::workspace::Workspace;
 const TOP_ASSETS: usize = 10;
 
 /// sha256 of [`PRINT_SCRIPT`], allowed by the page's Content-Security-Policy.
-const PRINT_SCRIPT_HASH: &str = "sha256-YBT/WzGBpdvp2oDaNuOBJuaAuy6y0df6zOX2949BH/4=";
+const PRINT_SCRIPT_HASH: &str = "sha256-8U7RJlWgu7WepxDnJbVVXadHk7k8MSogCSxej3/N0oo=";
 
-/// Expands collapsed appendices when the report is printed or saved as PDF.
-const PRINT_SCRIPT: &str = "window.addEventListener('beforeprint',function(){document.querySelectorAll('details').forEach(function(d){d.open=true;});});";
+/// Appendices are written expanded so they still print without JavaScript; on
+/// screen this collapses them, and expands them again for printing or PDF.
+const PRINT_SCRIPT: &str = "document.querySelectorAll('details[data-collapse]').forEach(function(d){d.open=false;});window.addEventListener('beforeprint',function(){document.querySelectorAll('details').forEach(function(d){d.open=true;});});";
 
 const MONTHS: [&str; 12] = [
     "January",
@@ -111,10 +112,9 @@ pub fn render(ws: &Workspace) -> Result<String> {
     };
     let (t1, t2, t3) = (tier_counts[0], tier_counts[1], tier_counts[2]);
     let has_plan = |year: u16| plans.iter().any(|p| p.milestone.year() == year);
-    let covered = [2026u16, 2028, 2030]
-        .iter()
-        .filter(|y| has_plan(**y))
-        .count();
+    // Any plan on file meets the 2026 "refined transition plan" milestone.
+    let covered =
+        usize::from(!plans.is_empty()) + usize::from(has_plan(2028)) + usize::from(has_plan(2030));
     let soci = systems.iter().filter(|s| s.is_soci).count();
 
     let mut h = String::new();
@@ -123,7 +123,7 @@ pub fn render(ws: &Workspace) -> Result<String> {
     h.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
     h.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
     h.push_str(&format!(
-        "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; script-src '{}'; img-src data:\">\n",
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; script-src '{}'; base-uri 'none'; form-action 'none'\">\n",
         PRINT_SCRIPT_HASH
     ));
     h.push_str("<meta name=\"color-scheme\" content=\"light dark\">\n");
@@ -260,9 +260,9 @@ pub fn render(ws: &Workspace) -> Result<String> {
     );
     kpi(
         &mut h,
-        "Milestones planned",
-        &format!("{} of 3", covered),
-        &format!("{} on file", plural(plans.len(), "plan", "plans")),
+        "Plans on file",
+        &group(plans.len()),
+        &format!("covering {} of 3 ASD milestones", covered),
     );
     h.push_str("</section>\n");
 
@@ -270,14 +270,14 @@ pub fn render(ws: &Workspace) -> Result<String> {
     let mut actions: Vec<String> = Vec::new();
     if t1 > 0 {
         actions.push(format!(
-            "<strong>Migrate {} now.</strong> {} high quantum exposure with a practical migration path and must be completed before the 2028 milestone.",
+            "<strong>Migrate {} now.</strong> {} high quantum exposure with a practical migration path and should be completed before the 2028 milestone.",
             plural(t1, "Tier 1 asset", "Tier 1 assets"),
             if t1 == 1 { "It combines" } else { "They combine" }
         ));
     }
     if broken > 0 {
         actions.push(format!(
-            "<strong>Retire {} using classically broken algorithms</strong> (MD5, SHA-1, RSA-1024, 3DES, RC4). These are exploitable today, independent of quantum timelines.",
+            "<strong>Replace {} using classically broken algorithms now</strong> (such as MD5, SHA-1, RSA-1024, 3DES and RC4). These are already weak against conventional attacks, whatever their quantum triage tier, and are marked <em>Broken today</em> below.",
             plural(broken, "asset", "assets")
         ));
     }
@@ -287,8 +287,8 @@ pub fn render(ws: &Workspace) -> Result<String> {
             plural(t2, "Tier 2 asset", "Tier 2 assets")
         ));
     }
-    if !has_plan(2026) {
-        actions.push("<strong>Agree a refined transition plan</strong> to meet the ASD end-of-2026 milestone (<code>boab plan generate --milestone 2026</code>).".to_string());
+    if plans.is_empty() {
+        actions.push("<strong>Generate and agree a transition plan</strong> to meet the ASD end-of-2026 milestone for a refined plan (<code>boab plan generate --milestone 2030</code> covers every tier).".to_string());
     }
     if unknown > 0 {
         actions.push(format!(
@@ -376,7 +376,7 @@ pub fn render(ws: &Workspace) -> Result<String> {
     h.push_str("</ul>\n</section>\n</div>\n");
 
     // Milestones ---------------------------------------------------------------
-    h.push_str("<section class=\"card\">\n<h2>ASD transition milestones</h2>\n<p class=\"sub\">Australian Signals Directorate direction for post-quantum migration</p>\n<ol class=\"milestones\">\n");
+    h.push_str("<section class=\"card\">\n<h2>ASD transition milestones</h2>\n<p class=\"sub\">Australian Signals Directorate (ASD) guidance for post-quantum migration</p>\n<ol class=\"milestones\">\n");
     for (year, title, desc) in [
         (
             2026u16,
@@ -394,24 +394,44 @@ pub fn render(ws: &Workspace) -> Result<String> {
             "Classical public-key cryptography retired from in-scope systems.",
         ),
     ] {
-        let (cls, label) = if has_plan(year) {
-            ("good", "Plan on file")
+        let (items, done) = plans
+            .iter()
+            .filter(|p| p.milestone.year() == year)
+            .flat_map(|p| p.items.iter())
+            .fold((0usize, 0usize), |(n, d), i| {
+                (n + 1, d + usize::from(i.status == PlanItemStatus::Complete))
+            });
+        let (cls, label) = if year == 2026 {
+            if plans.is_empty() {
+                ("warning", "Plan outstanding".to_string())
+            } else {
+                ("good", "Plan on file".to_string())
+            }
+        } else if !has_plan(year) {
+            ("warning", "Plan outstanding".to_string())
+        } else if items == 0 {
+            ("neutral", "Plan on file &middot; no items".to_string())
+        } else if done == items {
+            ("good", "All plan items complete".to_string())
         } else {
-            ("warning", "Plan outstanding")
+            (
+                "neutral",
+                format!("Plan on file &middot; {}% complete", done * 100 / items),
+            )
         };
         h.push_str(&format!(
             "<li><span class=\"year\">{}</span><span class=\"mt\">{}</span><span class=\"md\">{}</span>{}</li>\n",
             year,
             title,
             desc,
-            badge(cls, label)
+            badge(cls, &label)
         ));
     }
     h.push_str("</ol>\n</section>\n");
 
     // Top assets ---------------------------------------------------------------
     h.push_str(&format!(
-        "<section class=\"card\">\n<h2>Highest-priority assets</h2>\n<p class=\"sub\">Top {} by LATICE priority score (0&ndash;10)</p>\n",
+        "<section class=\"card\">\n<h2>Highest-priority assets</h2>\n<p class=\"sub\">Top {} by priority score (0&ndash;10)</p>\n",
         TOP_ASSETS
     ));
     asset_table(
@@ -500,7 +520,7 @@ pub fn render(ws: &Workspace) -> Result<String> {
                 group(done),
                 pct,
                 pct,
-                p.generated_at.format(&Rfc3339).unwrap_or_default(),
+                esc(&p.generated_at.format(&Rfc3339).unwrap_or_default()),
                 human_date(p.generated_at.date())
             ));
         }
@@ -546,7 +566,7 @@ pub fn render(ws: &Workspace) -> Result<String> {
     h.push_str("</ul>\n");
     if !registry.entries.is_empty() {
         h.push_str(&format!(
-            "<details>\n<summary>View all {} vendor products</summary>\n",
+            "<details open data-collapse>\n<summary>View all {} vendor products</summary>\n",
             group(registry.entries.len())
         ));
         h.push_str("<div class=\"tw\"><table>\n<thead><tr><th>Vendor</th><th>Product</th><th>Status</th><th>Target</th><th>Source</th></tr></thead>\n<tbody>\n");
@@ -590,7 +610,7 @@ pub fn render(ws: &Workspace) -> Result<String> {
         h.push_str("<p class=\"empty\">No assets inventoried yet.</p>\n");
     } else {
         h.push_str(&format!(
-            "<details>\n<summary>View all {}</summary>\n",
+            "<details open data-collapse>\n<summary>View all {}</summary>\n",
             plural(total, "asset", "assets")
         ));
         asset_table(&mut h, scored.iter(), &systems, "");
@@ -600,22 +620,22 @@ pub fn render(ws: &Workspace) -> Result<String> {
 
     // Appendix: methodology ----------------------------------------------------
     h.push_str("<section class=\"card method\">\n<h2>Appendix B &middot; Methodology</h2>\n");
-    h.push_str("<p>Each asset is scored with the ASD LATICE rubric on five axes, each from 0 to 10, and combined into a priority score:</p>\n");
+    h.push_str("<p>Each asset is scored with Boab&rsquo;s LATICE risk rubric, aligned to ASD guidance, on five axes, each from 0 to 10, and combined into a priority score:</p>\n");
     h.push_str("<p class=\"formula\"><code>priority = algo_vuln &times; 0.30 + hndl &times; 0.30 + data_sens &times; 0.15 + sys_crit &times; 0.15 + mig_diff &times; 0.10</code></p>\n");
     h.push_str("<dl>\n");
-    h.push_str("<dt>Algorithm vulnerability</dt><dd>How exposed the algorithm is: 10 for classically broken primitives, 8&ndash;9 for RSA and elliptic-curve cryptography, 5 for PQ/T hybrids, 1 for ML-KEM, ML-DSA and SLH-DSA, 0 for strong symmetric cryptography.</dd>\n");
+    h.push_str("<dt>Algorithm vulnerability</dt><dd>How exposed the algorithm is: 10 for classically broken primitives, 8&ndash;9 for RSA and elliptic-curve cryptography, 5 for PQ/T hybrids, 1 for ML-KEM, ML-DSA and SLH-DSA, 0 for strong symmetric cryptography. Unrecognised algorithms score 7 until they are classified.</dd>\n");
     h.push_str("<dt>Harvest now, decrypt later</dt><dd>How far the data&rsquo;s confidentiality horizon extends past the expected arrival of a cryptographically relevant quantum computer.</dd>\n");
     h.push_str("<dt>Data sensitivity and system criticality</dt><dd>Taken from the protective marking and criticality of the linked business system; SOCI-regulated systems score as mission critical.</dd>\n");
     h.push_str("<dt>Migration difficulty</dt><dd>Effort to replace the asset, from trivial configuration changes to hardware-locked devices.</dd>\n");
     h.push_str("</dl>\n");
-    h.push_str("<p><strong>Triage tiers.</strong> Tier 1: priority &ge; 7 with a practical migration path, migrate before 2028. Tier 2: priority &ge; 6, or hardware-locked and clearly vulnerable, migrate inside the 2028 window. Tier 3: vulnerable algorithm, replace during 2029&ndash;2030. Tier 4: monitor.</p>\n");
+    h.push_str("<p><strong>Triage tiers.</strong> Tier 1: priority &ge; 7 with a practical migration path, migrate before 2028. Tier 2: priority &ge; 6, or hardware-locked and clearly vulnerable, migrate inside the 2028 window. Tier 3: vulnerable algorithm, replace during 2029&ndash;2030. Tier 4: monitor. Assets using classically broken algorithms are marked <em>Broken today</em> and should be replaced now, whatever their tier.</p>\n");
     h.push_str("<p><strong>Overall posture.</strong> Critical when any Tier 1 asset exists; high when any Tier 2 asset exists or at least half of the inventory is quantum-vulnerable or unclassified; moderate when any vulnerable or unclassified asset remains; otherwise low.</p>\n");
     h.push_str("<p>Refer to the ASD Information Security Manual for control mappings. Boab does not map findings to specific ISM control IDs in this version.</p>\n");
     h.push_str("</section>\n</main>\n");
 
     // Footer -------------------------------------------------------------------
     h.push_str(&format!(
-        "<footer class=\"wrap\">Generated by Boab {} at <time datetime=\"{ts}\">{ts}</time>. This report is self-contained and makes no network requests.</footer>\n",
+        "<footer class=\"wrap\">Generated by Boab {} at <time datetime=\"{ts}\">{ts}</time>. This report is self-contained and loads nothing from the network.</footer>\n",
         env!("CARGO_PKG_VERSION"),
         ts = today.format(&Rfc3339).unwrap_or_default()
     ));
@@ -643,17 +663,29 @@ fn asset_table<'a>(
     systems: &[System],
     empty: &str,
 ) {
-    h.push_str("<div class=\"tw\"><table>\n<thead><tr><th class=\"num\">#</th><th>Asset</th><th>System</th><th>Status</th><th>Priority</th><th>Tier</th><th>Recommended action</th></tr></thead>\n<tbody>\n");
+    h.push_str("<div class=\"tw\"><table class=\"assets\">\n<colgroup><col class=\"c-n\"><col class=\"c-a\"><col class=\"c-s\"><col class=\"c-st\"><col class=\"c-p\"><col class=\"c-t\"><col class=\"c-r\"></colgroup>\n<thead><tr><th class=\"num\">#</th><th>Asset</th><th>System</th><th>Status</th><th>Priority</th><th>Tier</th><th>Recommended action</th></tr></thead>\n<tbody>\n");
     let mut n = 0usize;
     for (asset, score) in rows {
         n += 1;
         let p = fmt1(score.priority);
+        let (short, subject) = display_name(&asset.name);
+        let broken = score.algorithm_vulnerability >= 10;
         h.push_str(&format!(
-            "<tr><td class=\"num\">{}</td><td><span class=\"an\">{}</span><span class=\"aa\">{} &middot; <code>{}</code></span></td><td>{}</td><td>{}</td><td><span class=\"score\"><span class=\"meter\"><span class=\"mf t-{}\" style=\"width:{}%\"></span></span>{}</span></td><td>{}</td><td>{}</td></tr>\n",
+            "<tr><td class=\"num\">{}</td><td><span class=\"an\" title=\"{}\">{}{}</span><span class=\"aa\">{} &middot; <code>{}</code>{}</span></td><td>{}</td><td>{}</td><td><span class=\"score\"><span class=\"meter\"><span class=\"mf t-{}\" style=\"width:{}%\"></span></span>{}</span></td><td>{}</td><td>{}</td></tr>\n",
             n,
             esc(&asset.name),
+            esc(short),
+            if broken {
+                " <span class=\"tag tag-broken\">Broken today</span>"
+            } else {
+                ""
+            },
             asset_type_label(asset.asset_type),
             esc(&asset.algorithm_name),
+            match subject {
+                Some(s) => format!(" &middot; {}", esc(s)),
+                None => String::new(),
+            },
             match find_system(systems, asset) {
                 Some(s) => esc(&s.name),
                 None => "&ndash;".to_string(),
@@ -663,7 +695,11 @@ fn asset_table<'a>(
             p.replace('.', "").parse::<u32>().unwrap_or(0),
             p,
             tier_badge(score.triage_tier),
-            esc(&score.recommended_action)
+            if broken {
+                "Replace now: already weak against conventional (non-quantum) attacks".to_string()
+            } else {
+                esc(&score.recommended_action)
+            }
         ));
     }
     if n == 0 {
@@ -673,6 +709,32 @@ fn asset_table<'a>(
         ));
     }
     h.push_str("</tbody>\n</table></div>\n");
+}
+
+/// Scanner asset names often join a location and a subject, e.g.
+/// `/abs/path/cert.pem|CN=example`. Returns the part to headline (the file name
+/// for absolute paths) and the subject, if any.
+fn display_name(name: &str) -> (&str, Option<&str>) {
+    let (head, subject) = match name.split_once('|') {
+        Some((h, s)) => (h, Some(s)),
+        None => (name, None),
+    };
+    let c: Vec<char> = head.chars().take(3).collect();
+    let is_path = head.starts_with('/')
+        || head.starts_with('\\')
+        || (c.len() == 3
+            && c[0].is_ascii_alphabetic()
+            && c[1] == ':'
+            && (c[2] == '\\' || c[2] == '/'));
+    let short = if is_path {
+        match head.rsplit(['/', '\\']).next() {
+            Some(base) if !base.is_empty() => base,
+            _ => head,
+        }
+    } else {
+        head
+    };
+    (short, subject)
 }
 
 fn system_row<'a>(
@@ -941,8 +1003,9 @@ main{padding:28px 0 8px}
 .b-resistant .pip,.b-good .pip{background:var(--good)}
 .b-symmetric .pip{background:var(--symmetric)}
 .b-t2 .pip{background:var(--serious)}
-.b-t4 .pip{background:var(--neutral)}
+.b-t4 .pip,.b-neutral .pip{background:var(--neutral)}
 .tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:var(--brand-2);color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.04em;vertical-align:1px}
+.tag-broken{background:var(--critical)}
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th{text-align:left;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
@@ -964,7 +1027,7 @@ summary{cursor:pointer;font-weight:600;color:var(--hybrid);padding:4px 0;margin-
 .formula{background:var(--track);border-radius:8px;padding:10px 14px}
 footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.milestones{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}.hero-figure{text-align:left;max-width:none}}
-@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
+@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:25%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:24%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
 "#;
 
 #[cfg(test)]
@@ -1005,6 +1068,21 @@ mod tests {
             base64::engine::general_purpose::STANDARD.encode(digest)
         );
         assert_eq!(PRINT_SCRIPT_HASH, expected);
+    }
+
+    #[test]
+    fn display_names_shorten_paths_and_split_subjects() {
+        assert_eq!(
+            display_name("/home/u/certs/a.pem|CN=x|y"),
+            ("a.pem", Some("CN=x|y"))
+        );
+        assert_eq!(display_name("C:\\certs\\b.crt"), ("b.crt", None));
+        assert_eq!(
+            display_name("api.example.com:443|CN=R13"),
+            ("api.example.com:443", Some("CN=R13"))
+        );
+        assert_eq!(display_name("crypto/sha1"), ("crypto/sha1", None));
+        assert_eq!(display_name("/"), ("/", None));
     }
 
     #[test]
