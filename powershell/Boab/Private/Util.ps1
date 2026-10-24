@@ -355,7 +355,7 @@ function Get-BoabPathExtension {
     param([string]$Path)
     $name = [System.IO.Path]::GetFileName($Path)
     if ([string]::IsNullOrEmpty($name) -or $name -eq '..') { return $null }
-    $idx = $name.LastIndexOf('.')
+    $idx = $name.LastIndexOf([char]'.')
     if ($idx -le 0) { return $null }
     $name.Substring($idx + 1)
 }

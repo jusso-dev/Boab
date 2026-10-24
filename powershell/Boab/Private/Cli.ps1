@@ -305,7 +305,7 @@ function Invoke-BoabCliParse {
         if (-not $trailing -and $tok.StartsWith('--', [StringComparison]::Ordinal)) {
             $body = $tok.Substring(2)
             $inline = $null
-            $eq = $body.IndexOf('=')
+            $eq = $body.IndexOf([char]'=')
             if ($eq -ge 0) { $inline = $body.Substring($eq + 1); $body = $body.Substring(0, $eq) }
             if ($body -ceq 'help') { return @{ Action = 'help'; Stdout = (& $helpText $path); Stderr = ''; ExitCode = 0 } }
             if ($body -ceq 'version') { return @{ Action = 'version'; Stdout = (& $versionText); Stderr = ''; ExitCode = 0 } }

@@ -93,7 +93,7 @@ function ConvertFrom-BoabRateLimit {
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Value)
-    $idx = $Value.IndexOf('/')
+    $idx = $Value.IndexOf([char]'/')
     if ($idx -lt 0) { return $null }
     $nText = $Value.Substring(0, $idx).Trim()
     $unit = $Value.Substring($idx + 1).Trim()
@@ -117,7 +117,7 @@ function Split-BoabTlsTarget {
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Target)
-    $idx = $Target.LastIndexOf(':')
+    $idx = $Target.LastIndexOf([char]':')
     if ($idx -lt 0) { throw "target must be host:port, got $Target" }
     $hostPart = $Target.Substring(0, $idx)
     $portText = $Target.Substring($idx + 1)
@@ -747,8 +747,8 @@ function Test-BoabDnsNameMatch {
     if ($p -ceq $r) { return $true }
     if ($p.StartsWith('*.')) {
         $suffix = $p.Substring(1) # ".example.com"
-        if ($suffix.IndexOf('.', 1) -lt 0) { return $false } # no wildcard directly under a TLD
-        $dot = $r.IndexOf('.')
+        if ($suffix.IndexOf([char]'.', 1) -lt 0) { return $false } # no wildcard directly under a TLD
+        $dot = $r.IndexOf([char]'.')
         if ($dot -le 0) { return $false }
         return ($r.Substring($dot) -ceq $suffix)
     }

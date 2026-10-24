@@ -277,6 +277,17 @@ Describe 'reports.rs' {
         $html | Should -Not -Match '<link|src="http|url\(|@import'
     }
 
+    It 'writes reports under a culture with linguistic string matching (th-TH)' {
+        $saved = [System.Globalization.CultureInfo]::CurrentCulture
+        try {
+            [System.Globalization.CultureInfo]::CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo('th-TH')
+            foreach ($fmt in 'html', 'md', 'json') {
+                (Invoke-BoabTest --workspace $script:ReportWs report --format $fmt -o (Join-Path $script:ReportWs "thai.$fmt")).ExitCode | Should -Be 0 -Because $fmt
+            }
+        }
+        finally { [System.Globalization.CultureInfo]::CurrentCulture = $saved }
+    }
+
     It 'Export-BoabReport writes readiness.html by default' {
         $f = Export-BoabReport -Format html -Workspace $script:ReportWs
         $f.Name | Should -BeExactly 'readiness.html'

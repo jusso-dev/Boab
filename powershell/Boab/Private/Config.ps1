@@ -186,8 +186,8 @@ function Read-BoabTomlStringValue {
         return $value
     }
     if ($Text[$p] -eq "'") {
-        $end = $Text.IndexOf("'", $p + 1)
-        $nl = $Text.IndexOf("`n", $p + 1)
+        $end = $Text.IndexOf([char]"'", $p + 1)
+        $nl = $Text.IndexOf([char]"`n", $p + 1)
         if ($end -lt 0 -or ($nl -ge 0 -and $nl -lt $end)) { throw (New-BoabTomlError $Text $p 'invalid literal string') }
         $Pos.Value = $end + 1
         return $Text.Substring($p + 1, $end - $p - 1)
@@ -283,7 +283,7 @@ function ConvertFrom-BoabToml {
         $ch = $Text[$pos]
         if ($ch -eq ' ' -or $ch -eq "`t" -or $ch -eq "`r" -or $ch -eq "`n") { $pos++; continue }
         if ($ch -eq '#') {
-            $nl = $Text.IndexOf("`n", $pos)
+            $nl = $Text.IndexOf([char]"`n", $pos)
             $pos = if ($nl -lt 0) { $len } else { $nl + 1 }
             continue
         }
@@ -345,7 +345,7 @@ function Skip-BoabTomlLineEnd {
     $p = $Pos.Value
     while ($p -lt $Text.Length -and ($Text[$p] -eq ' ' -or $Text[$p] -eq "`t")) { $p++ }
     if ($p -lt $Text.Length -and $Text[$p] -eq '#') {
-        $nl = $Text.IndexOf("`n", $p)
+        $nl = $Text.IndexOf([char]"`n", $p)
         $p = if ($nl -lt 0) { $Text.Length } else { $nl }
     }
     if ($p -lt $Text.Length -and $Text[$p] -eq "`r") { $p++ }

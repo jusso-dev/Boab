@@ -49,7 +49,7 @@ function Split-BoabShortestFloat {
         $exp = [int]::Parse($t.Substring($eIdx + 1), $script:BoabInvariant)
         $t = $t.Substring(0, $eIdx)
     }
-    $dot = $t.IndexOf('.')
+    $dot = $t.IndexOf([char]'.')
     if ($dot -ge 0) {
         $frac = $t.Substring($dot + 1)
         $t = $t.Substring(0, $dot) + $frac

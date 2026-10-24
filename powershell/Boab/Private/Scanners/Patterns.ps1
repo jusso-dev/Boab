@@ -95,7 +95,7 @@ function Get-BoabScanPathExtension {
     param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Path)
     $name = [System.IO.Path]::GetFileName($Path.TrimEnd('/', '\'))
     if ([string]::IsNullOrEmpty($name) -or $name -eq '..') { return $null }
-    $idx = $name.LastIndexOf('.')
+    $idx = $name.LastIndexOf([char]'.')
     if ($idx -lt 0) { return $null }
     if ($idx -eq 0) { return $null }
     return $name.Substring($idx + 1)

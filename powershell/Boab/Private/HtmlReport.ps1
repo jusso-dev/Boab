@@ -125,7 +125,7 @@ summary{cursor:pointer;font-weight:600;color:var(--hybrid);padding:4px 0;margin-
 .formula{background:var(--track);border-radius:8px;padding:10px 14px}
 footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.milestones{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}.hero-figure{text-align:left;max-width:none}}
-@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:25%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:24%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
+@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:28%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:21%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
 '@ + "`n"
 
 function ConvertTo-BoabHtmlEscaped {
@@ -323,7 +323,7 @@ function Get-BoabHtmlDisplayName {
     # name for absolute paths) and the subject, if any.
     param([string]$Name)
     $head = $Name; $subject = $null
-    $bar = $Name.IndexOf('|')
+    $bar = $Name.IndexOf([char]'|')
     if ($bar -ge 0) { $head = $Name.Substring(0, $bar); $subject = $Name.Substring($bar + 1) }
     $isPath = $head.StartsWith('/', [System.StringComparison]::Ordinal) -or $head.StartsWith('\', [System.StringComparison]::Ordinal) -or
         ($head.Length -ge 3 -and [int]$head[0] -lt 128 -and [char]::IsLetter($head[0]) -and $head[1] -eq ':' -and ($head[2] -eq '\' -or $head[2] -eq '/'))
@@ -332,6 +332,8 @@ function Get-BoabHtmlDisplayName {
         $base = $head.Substring($head.LastIndexOfAny([char[]]@('/', '\')) + 1)
         if ($base.Length -gt 0) { $short = $base }
     }
+    if ($short.Length -eq 0) { return @{ Short = $Name; Subject = $null } }
+    if ($null -ne $subject -and $subject.Length -eq 0) { $subject = $null }
     @{ Short = $short; Subject = $subject }
 }
 
@@ -563,7 +565,7 @@ function New-BoabHtmlReport {
             foreach ($it in $p.items) { $items++; if ($it.status -ceq 'complete') { $done++ } }
         }
         if ($m[0] -eq 2026) {
-            $badge = if ($plans.Count -eq 0) { Get-BoabHtmlBadge -Class 'warning' -Label 'Plan outstanding' } else { Get-BoabHtmlBadge -Class 'good' -Label 'Plan on file' }
+            $badge = if ($plans.Count -eq 0) { Get-BoabHtmlBadge -Class 'warning' -Label 'Plan outstanding' } else { Get-BoabHtmlBadge -Class 'neutral' -Label 'Plan on file' }
         }
         elseif (-not $planYears.ContainsKey($m[0])) { $badge = Get-BoabHtmlBadge -Class 'warning' -Label 'Plan outstanding' }
         elseif ($items -eq 0) { $badge = Get-BoabHtmlBadge -Class 'neutral' -Label 'Plan on file &middot; no items' }

@@ -6,7 +6,7 @@ function Get-BoabSourceRoot {
     [OutputType([string])]
     param([AllowEmptyString()][string]$SourceLocation)
     $pathOnly = $SourceLocation
-    $idx = $SourceLocation.LastIndexOf(':')
+    $idx = $SourceLocation.LastIndexOf([char]':')
     if ($idx -ge 0) { $pathOnly = $SourceLocation.Substring(0, $idx) }
     $comp = Get-BoabFirstPathComponent -Path $pathOnly
     if ($null -eq $comp) { return $pathOnly }

@@ -405,7 +405,7 @@ pub fn render(ws: &Workspace) -> Result<String> {
             if plans.is_empty() {
                 ("warning", "Plan outstanding".to_string())
             } else {
-                ("good", "Plan on file".to_string())
+                ("neutral", "Plan on file".to_string())
             }
         } else if !has_plan(year) {
             ("warning", "Plan outstanding".to_string())
@@ -734,7 +734,10 @@ fn display_name(name: &str) -> (&str, Option<&str>) {
     } else {
         head
     };
-    (short, subject)
+    if short.is_empty() {
+        return (name, None);
+    }
+    (short, subject.filter(|s| !s.is_empty()))
 }
 
 fn system_row<'a>(
@@ -1027,7 +1030,7 @@ summary{cursor:pointer;font-weight:600;color:var(--hybrid);padding:4px 0;margin-
 .formula{background:var(--track);border-radius:8px;padding:10px 14px}
 footer{color:var(--muted);font-size:12.5px;padding-top:4px;padding-bottom:36px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.milestones{grid-template-columns:1fr}.hero{flex-direction:column;align-items:flex-start}.hero-figure{text-align:left;max-width:none}}
-@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:25%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:24%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
+@media print{:root{color-scheme:light;--page:#ffffff;--surface:#ffffff;--ink:#101b2b;--ink-2:#46505e;--muted:#5d6672;--line:#d9dde2;--track:#edf0f3;--hybrid:#2a78d6;--symmetric:#1c5cab}@page{size:A4;margin:14mm}body{font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wrap{max-width:none;padding:0}.masthead{padding:18px 20px}main{padding-top:16px}.hero,.kpi,.grid2 .card,.milestones li,tr{break-inside:avoid}h2,.sub{break-after:avoid}.hero{flex-direction:row;align-items:center}.hero-figure{text-align:right;max-width:200px}.hero-figure .big{font-size:44px}.kv{font-size:24px}table{font-size:11px}th{font-size:9.5px}.badge{font-size:10px;white-space:normal}.assets{table-layout:fixed}.assets .an{overflow-wrap:break-word}.c-n{width:4%}.c-a{width:28%}.c-s{width:11%}.c-st{width:14%}.c-p{width:12%}.c-t{width:10%}.c-r{width:21%}.assets .meter{width:28px}.assets .score{gap:5px}.b-t1,.b-t2,.b-t3,.b-t4{white-space:nowrap}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.milestones{grid-template-columns:repeat(3,minmax(0,1fr))}summary{display:none}.tw{overflow:visible}}
 "#;
 
 #[cfg(test)]
@@ -1083,6 +1086,9 @@ mod tests {
         );
         assert_eq!(display_name("crypto/sha1"), ("crypto/sha1", None));
         assert_eq!(display_name("/"), ("/", None));
+        assert_eq!(display_name("|"), ("|", None));
+        assert_eq!(display_name("|bar"), ("|bar", None));
+        assert_eq!(display_name("foo|"), ("foo", None));
     }
 
     #[test]
