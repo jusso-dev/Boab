@@ -1,8 +1,10 @@
 # Scanner reference
 
-Boab ships three scanners, each producing the same shape of `Finding`
+Boab ships five scanners, each producing the same shape of `Finding`
 records that flow through a shared dedup pipeline into the canonical
-inventory.
+inventory. Only `boab scan tls` makes network connections. The host and
+KMS scanners read local files or files you export; they make no cloud or
+network calls.
 
 ## Codebase scanner
 
@@ -58,16 +60,127 @@ HSTS probing requires `--probe-hsts` and is forbidden when
 Implementation: `src/scanners/cert_store.rs`.
 
 Walks a directory for files with extensions `.pem`, `.crt`, `.cer`,
-`.der`, `.p7b`, `.p12`, `.pfx`, `.jks`. Parses with `x509-parser` for
-X.509 and `p12-keystore` for PKCS12.
+`.der`, `.p7b`, `.p12`, `.pfx`, `.jks`, `.jceks`. Parses with
+`x509-parser` for X.509, `p12-keystore` for PKCS12, and an in-tree
+reader (`src/scanners/jks.rs`) for JKS and JCEKS.
 
-JKS support is a documented gap: convert JKS keystores to PKCS12 with
-`keytool -importkeystore -srcstoretype JKS -deststoretype PKCS12` before
-scanning. JKS files are still emitted as Low-confidence findings so
-they appear in your inventory.
+Every certificate in a keystore is recorded as a certificate asset, as
+before. In addition, each keystore alias becomes a `keystore_entry` key
+asset:
+
+| Field (`parameter_set`) | Meaning |
+| --- | --- |
+| `host` | `--host`, or this machine's host name |
+| `location` | Keystore file path |
+| `store_type` | `PKCS12`, `JKS` or `JCEKS` |
+| `alias` | Entry alias |
+| `entry_type` | `private_key`, `trusted_certificate` or `secret_key` |
+| `key_size_bits` | From the entry certificate's public key |
+| `public_key_algorithm`, `public_key_algorithm_oid`, `signature_algorithm`, `subject`, `issuer`, `not_before_unix`, `not_after_unix`, `certificate_sha256` | From the leaf certificate |
+| `integrity_verified` | `true` when the password matched the store's integrity check, `false` when it did not, `null` with no password |
+
+`algorithm_name` is `RSA`, `ECDSA-P256`, `ECDSA-P384`, `ECDSA-P521`,
+`Ed25519` or `Ed448`, from the certificate public key only.
+
+Private key material is never read. For PKCS12 only the certificate
+chain is used. For JKS the protected key blob is skipped by length and
+never decoded. A JKS with a wrong password is still listed, with
+`integrity_verified = false` and a warning. Parsing stops at a JCEKS
+secret key entry (a serialised Java object), which is recorded with an
+unknown algorithm.
 
 Passwords are read from `--password-file` if needed. Boab never stores or
 logs the password.
+
+## Host crypto scanner
+
+Implementation: `src/scanners/host.rs`.
+
+```sh
+boab scan host /                         # this machine
+boab scan host /mnt/web01 --host web01   # a mounted image or a copied /etc tree
+```
+
+Reads files under a root directory. Every recorded path is the path on
+the scanned host, so `/mnt/web01/etc/ssh/sshd_config` is recorded as
+`/etc/ssh/sshd_config`. The host label is `--host`, else
+`<root>/etc/hostname`, else (for `/`) the local host name.
+
+What it reads:
+
+| Source | Files | Asset kind |
+| --- | --- | --- |
+| SSH host public keys | `/etc/ssh/ssh_host_*_key.pub`, `*-cert.pub`, and `HostKey` paths from sshd_config with `.pub` appended | `ssh_host_key` (`key`) |
+| SSH private host keys | Names only, from the directory listing. Never opened. Recorded only when no `.pub` sits beside them | `ssh_host_key` (`key`) |
+| sshd algorithm lists | `/etc/ssh/sshd_config`, its `Include` files (wildcards supported), then `/etc/crypto-policies/back-ends/opensshserver.config` for directives sshd_config leaves unset. `Match` blocks are skipped. First value wins, as in sshd | `ssh_config_algorithm` (`algorithm`), one per entry of `HostKeyAlgorithms`, `KexAlgorithms`, `Ciphers`, `MACs` |
+| RHEL/Fedora crypto policy | `/etc/crypto-policies/state/current`, else `/etc/crypto-policies/config`; the back-end file list; TLS settings from `back-ends/opensslcnf.config` | `os_crypto_policy` (`protocol_endpoint`) |
+| OpenSSL config | `/etc/ssl/openssl.cnf`, `/etc/pki/tls/openssl.cnf`, `/usr/lib/ssl/openssl.cnf`, `/usr/local/ssl/openssl.cnf`, `/etc/openssl/openssl.cnf`, following `.include` | `openssl_config` (`protocol_endpoint`) |
+
+SSH key comments (often `user@host`) are never recorded. SSH key sizes
+come from the public key blob (RSA and DSA modulus length, ECDSA curve).
+
+PQC status:
+
+- Host keys and host key algorithms: RSA, DSA, ECDSA, Ed25519, Ed448 are
+  `vulnerable`.
+- KEX: `sntrup761x25519-sha512`, `mlkem768x25519-sha256` and other ML-KEM
+  hybrids are `hybrid`; classical ECDH, X25519 and DH are `vulnerable`.
+- Ciphers and MACs: AES, ChaCha20-Poly1305, HMAC-SHA2 and UMAC-128 are
+  `symmetric_ok`; 3DES, Blowfish, CAST-128, RC4, HMAC-SHA1 and HMAC-MD5
+  are `vulnerable`.
+- Crypto policy and OpenSSL config: `hybrid` when `Groups` include an
+  ML-KEM or Kyber group (or a policy name or subpolicy contains `PQ`),
+  otherwise `vulnerable` (TLS key exchange is classical).
+  `parameter_set.pqc_reason` explains which.
+
+OpenSSL settings recorded on both policy kinds: `min_protocol`,
+`max_protocol`, `allowed_protocols` (the TLS versions between them, or
+`null` when MinProtocol is unset and OpenSSL defaults apply),
+`cipher_string`, `ciphersuites`, `groups`, `signature_algorithms`.
+`TLS.`-prefixed keys from crypto-policies are read; `DTLS.` keys are
+ignored.
+
+## KMS listing scanner
+
+Implementation: `src/scanners/kms.rs`.
+
+```sh
+aws kms list-keys > aws-list.json
+for k in $(aws kms list-keys --query 'Keys[].KeyId' --output text); do
+  aws kms describe-key --key-id "$k"
+done > aws-describe.json
+az keyvault key list --vault-name myvault > azure-list.json
+az keyvault key show --vault-name myvault --name mykey > azure-show.json
+gcloud kms keys list --keyring ring --location loc --format=json > gcp.json
+
+boab scan kms aws-list.json aws-describe.json azure-list.json azure-show.json gcp.json
+```
+
+Boab does not call any cloud API; you run the export and pass the files.
+Each file may hold one JSON document, a JSON array, or several documents
+back to back. The provider is detected from the shape; pass
+`--provider aws|azure|gcp` to force it. The same key seen in a listing
+and a describe/show export is merged.
+
+Recorded per key (`kms_key`, asset type `key`): `provider`, `key_id`,
+`key_ref` (AWS ARN, versionless Azure key URI, GCP key resource name),
+`key_spec`, `key_usage`, `key_state`, `enabled`, `protection_level`,
+`key_manager`, `origin`, `created`, `expires`, `key_version`, `curve`,
+`symmetric`, `listing_sources`. `host` is the account scope:
+`aws:<account>:<region>`, `azure:<vault>`, or
+`gcp:<project>/<location>/<keyRing>`. `location` is `key_ref`.
+
+Metadata only. Descriptions, tags, labels and policies are not recorded.
+Azure `key show` includes the public key (`n`, `e`, `x`, `y`); Boab uses
+the modulus or curve length to work out the key size and drops the
+values.
+
+Key specs map to Boab algorithms: `RSA_2048` and friends to `RSA` with
+the size, `ECC_NIST_P256`, `EC_SIGN_P256_SHA256` and `EC` with `P-256`
+to `ECDSA-P256` (or `ECDH-P256` for key agreement), `SYMMETRIC_DEFAULT`
+and `GOOGLE_SYMMETRIC_ENCRYPTION` to `AES-256-GCM`, `HMAC_*` to
+`HMAC-SHA*`, `ML_DSA_*` and `ML_KEM_*` to the matching FIPS 204 and 203
+names (`resistant`), and `KEM_XWING` to `X-Wing` (`hybrid`).
 
 ## Dedup pipeline
 
@@ -82,6 +195,14 @@ Dedup keys:
 - TLS certificates: `sha256(DER)`.
 - TLS endpoints: `target + cipher suite`.
 - TLS supported groups: `target + group name`.
+- Host crypto, keystore and KMS assets: `parameter_set.asset_key`, built
+  from stable fields only:
+  - `ssh_host_key:<host>:<fingerprint_sha256 or location>`
+  - `ssh_alg:<host>:<directive>:<ssh_name>`
+  - `crypto_policy:<host>`
+  - `openssl_config:<host>:<location>`
+  - `keystore:<host>:<location>:<alias>`
+  - `kms:<provider>:<key_id>`
 
 Promotion is idempotent. Re-running the same scan does not add duplicate
 inventory entries and preserves user-set fields on existing assets:
