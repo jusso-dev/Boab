@@ -583,6 +583,7 @@ fn json_report_scores_new_assets_and_plans_pick_them_up() {
         .any(|s| s["scan_type"] == "host_crypto"));
 }
 
+#[cfg(unix)]
 fn scan_record(ws: &Path) -> Value {
     let dir = ws.join(".boab/scans");
     let f = fs::read_dir(dir).unwrap().flatten().next().unwrap().path();
