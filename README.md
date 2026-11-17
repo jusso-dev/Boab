@@ -214,6 +214,8 @@ boab scan tls api.example.com:443
 
 # 5. Scan a directory of certificate files.
 boab scan certs ./certs
+boab scan host /                       # SSH host keys, sshd_config, crypto policy, openssl.cnf
+boab scan kms aws-describe.json        # exported KMS listings (AWS, Azure, GCP), metadata only
 
 # 6. Inspect the deduplicated inventory.
 boab inventory list
@@ -450,7 +452,7 @@ Walks a directory for files matching `.pem`, `.crt`, `.cer`, `.der`,
 | PEM (`.pem`, `.crt`, `.cer`, `.p7b`) | `x509-parser` | Multi-block files supported. |
 | DER (`.der`) | `x509-parser` | |
 | PKCS#12 (`.p12`, `.pfx`) | `p12-keystore` | Password via `--password-file`. |
-| JKS (`.jks`) | placeholder only | Convert to PKCS12 with `keytool`. |
+| JKS and JCEKS (`.jks`, `.jceks`) | in-tree reader | Lists aliases and certificates; protected key blobs are skipped unread. |
 
 For every X.509 certificate Boab records subject, issuer, signature
 algorithm OID and friendly name, public key algorithm OID and
@@ -561,8 +563,9 @@ milestone clock.
 
 ## Out of scope for v1
 
-KMS scanners, Kubernetes secret enumeration, SSH and GPG host key
-inventory, live vendor PQC roadmap fetching, automatic remediation,
+Live KMS API scanners (exported listings are supported via
+`boab scan kms`), Kubernetes secret enumeration, GPG key inventory,
+live vendor PQC roadmap fetching, automatic remediation,
 specific ISM control ID mapping, scoring weight overrides, HTML
 reports, web UI, daemon mode, and multi-machine federation. These
 are tracked in `docs/backlog-v1.1.md`.

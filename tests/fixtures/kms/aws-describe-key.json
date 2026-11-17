@@ -1,0 +1,49 @@
+{
+    "KeyMetadata": {
+        "AWSAccountId": "111122223333",
+        "KeyId": "1234abcd-12ab-34cd-56ef-1234567890ab",
+        "Arn": "arn:aws:kms:ap-southeast-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+        "CreationDate": "2024-03-01T02:15:00.000000+00:00",
+        "Enabled": true,
+        "Description": "Example data only",
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyState": "Enabled",
+        "Origin": "AWS_KMS",
+        "KeyManager": "CUSTOMER",
+        "CustomerMasterKeySpec": "RSA_2048",
+        "KeySpec": "RSA_2048",
+        "SigningAlgorithms": ["RSASSA_PSS_SHA_256", "RSASSA_PKCS1_V1_5_SHA_256"],
+        "MultiRegion": false
+    }
+}
+{
+    "KeyMetadata": {
+        "AWSAccountId": "111122223333",
+        "KeyId": "0987dcba-09fe-87dc-65ba-ab0987654321",
+        "Arn": "arn:aws:kms:ap-southeast-2:111122223333:key/0987dcba-09fe-87dc-65ba-ab0987654321",
+        "CreationDate": 1717200000.0,
+        "Enabled": true,
+        "Description": "Example data only",
+        "KeyUsage": "ENCRYPT_DECRYPT",
+        "KeyState": "Enabled",
+        "Origin": "AWS_KMS",
+        "KeyManager": "AWS",
+        "KeySpec": "SYMMETRIC_DEFAULT",
+        "EncryptionAlgorithms": ["SYMMETRIC_DEFAULT"]
+    }
+}
+{
+    "KeyMetadata": {
+        "AWSAccountId": "111122223333",
+        "KeyId": "mrk-1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+        "Arn": "arn:aws:kms:ap-southeast-2:111122223333:key/mrk-1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+        "CreationDate": "2025-07-01T00:00:00+00:00",
+        "Enabled": false,
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyState": "PendingDeletion",
+        "Origin": "AWS_KMS",
+        "KeyManager": "CUSTOMER",
+        "KeySpec": "ECC_NIST_P384",
+        "DeletionDate": "2026-12-01T00:00:00+00:00"
+    }
+}

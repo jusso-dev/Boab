@@ -10,6 +10,10 @@ pub enum ScanType {
     Codebase,
     TlsEndpoint,
     CertificateStore,
+    /// SSH host keys, sshd_config and OS crypto policy under a filesystem root.
+    HostCrypto,
+    /// Cloud KMS key listings exported by the user (AWS, Azure, GCP).
+    KmsListing,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,0 +1,10 @@
+# Example sshd_config for Boab tests
+Include /etc/ssh/sshd_config.d/*.conf
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+PermitRootLogin no
+Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-ctr,3des-cbc
+MACs hmac-sha2-256-etm@openssh.com,hmac-sha1
+Match User backup
+    Ciphers aes128-cbc

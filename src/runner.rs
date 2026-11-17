@@ -348,12 +348,55 @@ fn cmd_scan(workspace_root: &std::path::Path, sub: &ScanCommand) -> Result<i32> 
             let opts = CertStoreOptions {
                 password_file: args.password_file.clone(),
                 name: args.name.clone(),
+                host: args.host.clone(),
             };
             let mut scan = cert_store::scan_path(&args.path, &opts)?;
             let inventory_count = crate::dedup::promote_into_workspace(&mut scan, &ws)?.len();
             crate::storage::save_scan(&ws, &scan)?;
             println!(
                 "cert scan {} complete: {} findings, inventory {} entries",
+                scan.id,
+                scan.findings.len(),
+                inventory_count
+            );
+            Ok(0)
+        }
+        ScanCommand::Host(args) => {
+            use crate::scanners::host::{self, HostScanOptions};
+            let ws = Workspace::open(workspace_root)?;
+            let opts = HostScanOptions {
+                host: args.host.clone(),
+                name: args.name.clone(),
+            };
+            let mut scan = host::scan_root(&args.root, &opts)?;
+            let inventory_count = crate::dedup::promote_into_workspace(&mut scan, &ws)?.len();
+            crate::storage::save_scan(&ws, &scan)?;
+            println!(
+                "host scan {} complete: {} findings, inventory {} entries",
+                scan.id,
+                scan.findings.len(),
+                inventory_count
+            );
+            Ok(0)
+        }
+        ScanCommand::Kms(args) => {
+            use crate::scanners::kms::{self, KmsOptions, Provider};
+            let ws = Workspace::open(workspace_root)?;
+            let provider = match args.provider.as_deref() {
+                Some(p) => Some(Provider::parse(p).ok_or_else(|| {
+                    anyhow!("unknown provider: {} (expected aws, azure or gcp)", p)
+                })?),
+                None => None,
+            };
+            let opts = KmsOptions {
+                provider,
+                name: args.name.clone(),
+            };
+            let mut scan = kms::scan_files(&args.files, &opts)?;
+            let inventory_count = crate::dedup::promote_into_workspace(&mut scan, &ws)?.len();
+            crate::storage::save_scan(&ws, &scan)?;
+            println!(
+                "kms scan {} complete: {} keys, inventory {} entries",
                 scan.id,
                 scan.findings.len(),
                 inventory_count

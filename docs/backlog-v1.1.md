@@ -4,10 +4,11 @@ Items explicitly deferred from v1, captured here so they are not lost.
 
 ## Scanners
 
-- KMS scanners for AWS KMS, Azure Key Vault, GCP KMS.
+- Live KMS scanners for AWS KMS, Azure Key Vault, GCP KMS. (Offline
+  import of exported listings ships as `boab scan kms`.)
 - Kubernetes secret enumeration (TLS secrets, sealed secrets).
-- SSH and GPG key inventory across hosts.
-- JKS native parsing in the certificate store scanner.
+- GPG key inventory, and SSH user keys (`authorized_keys`). (SSH host
+  keys and sshd_config ship as `boab scan host`.)
 
 ## Vendor registry
 
