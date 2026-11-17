@@ -34,6 +34,14 @@ pub fn promote_findings(
         let key = key_data.dedup_key.clone();
 
         if let Some(&existing_idx) = index.get(&key) {
+            // Host crypto, keystore and KMS keys are identified by where they
+            // live, not by their content, so the key behind an identity can
+            // change (a keystore alias reissued from RSA to EC). Refresh the
+            // scanner-owned fields; user-set fields are left alone.
+            if key_data.asset_name.is_some() {
+                let fresh = build_asset_from_finding(finding, key_data)?;
+                refresh_scanner_fields(&mut inventory[existing_idx], fresh);
+            }
             inventory[existing_idx].last_seen_at = now;
             finding.crypto_asset_id = Some(inventory[existing_idx].id);
             continue;
@@ -47,6 +55,20 @@ pub fn promote_findings(
     }
 
     Ok(inventory)
+}
+
+/// Copy the fields a scanner owns from a freshly built asset. Keeps the id,
+/// first_seen_at and every user-set field (description, system_id,
+/// data_classification, data_retention_horizon_year, migration_difficulty,
+/// migration_status, target_milestone, tags, notes).
+fn refresh_scanner_fields(existing: &mut CryptoAsset, fresh: CryptoAsset) {
+    existing.algorithm_name = fresh.algorithm_name;
+    existing.algorithm_oid = fresh.algorithm_oid;
+    existing.primitive = fresh.primitive;
+    existing.parameter_set = fresh.parameter_set;
+    existing.pqc_status = fresh.pqc_status;
+    existing.quantum_vulnerable = fresh.quantum_vulnerable;
+    existing.name = fresh.name;
 }
 
 struct FindingKey {
@@ -422,7 +444,9 @@ fn build_asset_from_finding(finding: &Finding, key: FindingKey) -> Result<Crypto
     if let Some(b) = key.key_size_bits {
         params.insert("key_size_bits".to_string(), Value::from(b));
     }
-    if let Some(p) = key.primitive {
+    // Host crypto findings already carry `primitive` in snake_case; the older
+    // kinds keep their existing spelling (pinned by the PowerShell port).
+    if let Some(p) = key.primitive.filter(|_| key.asset_name.is_none()) {
         params.insert(
             "primitive".to_string(),
             Value::from(format!("{:?}", p).to_ascii_lowercase()),

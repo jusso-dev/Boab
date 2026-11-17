@@ -74,7 +74,8 @@ pub fn host_crypto_dedup_key(kind: &str, algorithm_name: &str, params: &Value) -
         KIND_OS_CRYPTO_POLICY => format!("crypto_policy:{}", s("host")),
         KIND_OPENSSL_CONFIG => format!("openssl_config:{}:{}", s("host"), s("location")),
         KIND_KEYSTORE_ENTRY => format!("keystore:{}:{}:{}", s("host"), s("location"), s("alias")),
-        KIND_KMS_KEY => format!("kms:{}:{}", s("provider"), s("key_id")),
+        // The full reference: related multi-Region AWS keys share a KeyId.
+        KIND_KMS_KEY => format!("kms:{}:{}", s("provider"), s("key_ref")),
         _ => return None,
     };
     Some(key)

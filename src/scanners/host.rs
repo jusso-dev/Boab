@@ -9,10 +9,20 @@
 //! Only public material and configuration are read. SSH private host key files
 //! (`ssh_host_*_key`) are recognised from the directory listing by name and are
 //! never opened.
+//!
+//! Symlinks are resolved inside the root: an absolute link target such as
+//! `/usr/share/crypto-policies/...` is read from `<root>/usr/share/...`, never
+//! from the machine running Boab, and `..` cannot climb above the root.
+//! Files that exist but cannot be read are recorded in the scan record
+//! (`config.collection_errors` and `error_message`) and logged as warnings,
+//! so a partial collection is never reported as a clean one.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::ffi::OsString;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::io;
+use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result};
 use base64::Engine;
@@ -52,10 +62,11 @@ pub fn scan_root(root: &Path, options: &HostScanOptions) -> Result<Scan> {
     let root = root
         .canonicalize()
         .with_context(|| format!("could not resolve host root {}", root.display()))?;
+    let rootfs = RootFs::new(root.clone());
     let host = options
         .host
         .clone()
-        .unwrap_or_else(|| host_label_for(&root));
+        .unwrap_or_else(|| host_label_for(&rootfs));
     let mut scan = Scan::new(
         options
             .name
@@ -68,6 +79,7 @@ pub fn scan_root(root: &Path, options: &HostScanOptions) -> Result<Scan> {
     scan.config = json!({ "host": host });
 
     let ctx = Ctx {
+        fs: &rootfs,
         root: &root,
         host: &host,
         scan_id: scan.id,
@@ -78,31 +90,65 @@ pub fn scan_root(root: &Path, options: &HostScanOptions) -> Result<Scan> {
     ctx.crypto_policy(&mut scan.findings);
     ctx.openssl_configs(&mut scan.findings);
 
+    let errors = rootfs.errors.into_inner();
+    if !errors.is_empty() {
+        for e in &errors {
+            tracing::warn!("host scan could not read {}", e);
+        }
+        scan.error_message = Some(format!(
+            "{} path(s) under {} could not be read; inventory for this host may be incomplete",
+            errors.len(),
+            root.display()
+        ));
+        if let Some(cfg) = scan.config.as_object_mut() {
+            cfg.insert("collection_errors".into(), json!(errors));
+        }
+    }
     scan.status = ScanStatus::Completed;
     scan.completed_at = Some(OffsetDateTime::now_utc());
     Ok(scan)
 }
 
-fn host_label_for(root: &Path) -> String {
-    if let Some(h) = super::read_hostname_file(&root.join("etc/hostname")) {
-        return h;
+fn host_label_for(rootfs: &RootFs) -> String {
+    if let Some(raw) = rootfs.read_text(&rootfs.root.join("etc/hostname")) {
+        if let Some(h) = raw
+            .lines()
+            .map(str::trim)
+            .find(|l| !l.is_empty() && !l.starts_with('#'))
+        {
+            return h.to_string();
+        }
     }
-    if root.parent().is_none() {
+    if rootfs.root.parent().is_none() {
         return super::local_host_label();
     }
-    root.display().to_string()
+    rootfs.root.display().to_string()
 }
 
-struct Ctx<'a> {
-    root: &'a Path,
-    host: &'a str,
-    scan_id: Uuid,
+const MAX_SYMLINK_HOPS: usize = 40;
+
+/// Filesystem access confined to the scanned root.
+///
+/// Paths handed to these methods are "logical" paths: `root` joined with the
+/// path as seen on the scanned host. Each component is resolved with
+/// `symlink_metadata`/`read_link`, so links are followed inside the root only.
+struct RootFs {
+    root: PathBuf,
+    /// `<host path>: <error>` for every path that exists but could not be read.
+    errors: RefCell<Vec<String>>,
 }
 
-impl Ctx<'_> {
-    /// Path on the scanned host for a file under the root, with `/` separators.
+impl RootFs {
+    fn new(root: PathBuf) -> Self {
+        Self {
+            root,
+            errors: RefCell::new(Vec::new()),
+        }
+    }
+
+    /// Path on the scanned host for a logical path, with `/` separators.
     fn host_path(&self, path: &Path) -> String {
-        match path.strip_prefix(self.root) {
+        match path.strip_prefix(&self.root) {
             Ok(rel) => {
                 let parts: Vec<String> = rel
                     .components()
@@ -114,7 +160,128 @@ impl Ctx<'_> {
         }
     }
 
-    /// Map an absolute path on the scanned host to a path under the root.
+    /// Resolve a logical path to a real path inside the root.
+    fn resolve(&self, logical: &Path) -> io::Result<PathBuf> {
+        let rel = logical.strip_prefix(&self.root).unwrap_or(logical);
+        let mut pending: VecDeque<OsString> = components_of(rel).into();
+        let mut current: Vec<OsString> = Vec::new();
+        let mut hops = 0usize;
+        while let Some(comp) = pending.pop_front() {
+            if comp == ".." {
+                current.pop();
+                continue;
+            }
+            let mut candidate = self.root.clone();
+            candidate.extend(&current);
+            candidate.push(&comp);
+            let meta = fs::symlink_metadata(&candidate)?;
+            if meta.file_type().is_symlink() {
+                hops += 1;
+                if hops > MAX_SYMLINK_HOPS {
+                    return Err(io::Error::other("too many levels of symbolic links"));
+                }
+                let target = fs::read_link(&candidate)?;
+                if target.has_root() {
+                    current.clear();
+                }
+                for c in components_of(&target).into_iter().rev() {
+                    pending.push_front(c);
+                }
+            } else {
+                current.push(comp);
+            }
+        }
+        let mut real = self.root.clone();
+        real.extend(&current);
+        Ok(real)
+    }
+
+    fn note(&self, logical: &Path, err: &io::Error) {
+        if err.kind() != io::ErrorKind::NotFound {
+            self.errors
+                .borrow_mut()
+                .push(format!("{}: {}", self.host_path(logical), err));
+        }
+    }
+
+    fn exists(&self, logical: &Path) -> bool {
+        self.resolve(logical).is_ok()
+    }
+
+    fn is_file(&self, logical: &Path) -> bool {
+        self.resolve(logical)
+            .and_then(fs::metadata)
+            .is_ok_and(|m| m.is_file())
+    }
+
+    fn is_dir(&self, logical: &Path) -> bool {
+        self.resolve(logical)
+            .and_then(fs::metadata)
+            .is_ok_and(|m| m.is_dir())
+    }
+
+    /// Read a text file. A missing file is `None` without a diagnostic; any
+    /// other failure is recorded.
+    fn read_text(&self, logical: &Path) -> Option<String> {
+        match self.resolve(logical).and_then(fs::read_to_string) {
+            Ok(s) => Some(s),
+            Err(e) => {
+                self.note(logical, &e);
+                None
+            }
+        }
+    }
+
+    /// Entry names and logical paths of a directory, sorted by name. A missing
+    /// directory is empty without a diagnostic; other failures are recorded.
+    fn list_dir(&self, logical: &Path) -> Vec<(String, PathBuf)> {
+        let rd = match self.resolve(logical).and_then(fs::read_dir) {
+            Ok(rd) => rd,
+            Err(e) => {
+                self.note(logical, &e);
+                return Vec::new();
+            }
+        };
+        let mut out = Vec::new();
+        for entry in rd {
+            match entry {
+                Ok(e) => {
+                    let name = e.file_name().to_string_lossy().into_owned();
+                    out.push((name.clone(), logical.join(&name)));
+                }
+                Err(e) => self.note(logical, &e),
+            }
+        }
+        out.sort();
+        out
+    }
+}
+
+/// Normal components of a path, ignoring roots, prefixes and `.`.
+fn components_of(path: &Path) -> Vec<OsString> {
+    path.components()
+        .filter_map(|c| match c {
+            Component::Normal(s) => Some(s.to_os_string()),
+            Component::ParentDir => Some(OsString::from("..")),
+            _ => None,
+        })
+        .collect()
+}
+
+struct Ctx<'a> {
+    fs: &'a RootFs,
+    root: &'a Path,
+    host: &'a str,
+    scan_id: Uuid,
+}
+
+impl Ctx<'_> {
+    /// Path on the scanned host for a logical path under the root.
+    fn host_path(&self, path: &Path) -> String {
+        self.fs.host_path(path)
+    }
+
+    /// Map an absolute path on the scanned host to a logical path under the root.
     fn rebase(&self, host_path: &str) -> PathBuf {
         self.root.join(host_path.trim_start_matches(['/', '\\']))
     }
@@ -130,28 +297,29 @@ impl Ctx<'_> {
         // Private key files are identified by name from the directory listing only.
         let mut private_names: BTreeSet<PathBuf> = BTreeSet::new();
         let mut public_files: BTreeSet<PathBuf> = BTreeSet::new();
-        if let Ok(rd) = fs::read_dir(&ssh_dir) {
-            for e in rd.flatten() {
-                let name = e.file_name().to_string_lossy().into_owned();
-                if !name.starts_with("ssh_host_") {
-                    continue;
-                }
-                if name.ends_with("_key.pub") || name.ends_with("_key-cert.pub") {
-                    public_files.insert(e.path());
-                } else if name.ends_with("_key") {
-                    private_names.insert(e.path());
-                }
+        for (name, path) in self.fs.list_dir(&ssh_dir) {
+            if !name.starts_with("ssh_host_") {
+                continue;
+            }
+            if name.ends_with("_key.pub") || name.ends_with("_key-cert.pub") {
+                public_files.insert(path);
+            } else if name.ends_with("_key") {
+                private_names.insert(path);
             }
         }
         for hk in &ssh.host_keys {
             let private = self.rebase(hk);
             let public = PathBuf::from(format!("{}.pub", private.display()));
-            if public.is_file() {
+            if self.fs.is_file(&public) {
                 public_files.insert(public);
-            } else if private.exists() {
+            } else if self.fs.exists(&private) {
                 private_names.insert(private);
             }
         }
+
+        // Only a public key that was read and parsed stands in for its private
+        // key file; otherwise the name-based record below is still emitted.
+        let mut parsed_public: BTreeSet<PathBuf> = BTreeSet::new();
 
         for pub_path in &public_files {
             let private = pub_path
@@ -159,17 +327,19 @@ impl Ctx<'_> {
                 .strip_suffix(".pub")
                 .map(PathBuf::from)
                 .filter(|p| !p.to_string_lossy().ends_with("-cert"));
-            let private_present = private.as_ref().is_some_and(|p| p.exists());
-            let line = match fs::read_to_string(pub_path) {
-                Ok(s) => s,
-                Err(e) => {
-                    tracing::debug!("skip {}: {}", pub_path.display(), e);
-                    continue;
-                }
+            let private_present = private.as_ref().is_some_and(|p| self.fs.exists(p));
+            let Some(line) = self.fs.read_text(pub_path) else {
+                continue;
             };
             match parse_ssh_public_key(&line) {
-                Some(key) => out.push(self.ssh_key_finding(pub_path, &key, private_present)),
-                None => tracing::debug!("not an SSH public key: {}", pub_path.display()),
+                Some(key) => {
+                    out.push(self.ssh_key_finding(pub_path, &key, private_present));
+                    parsed_public.insert(pub_path.clone());
+                }
+                None => tracing::warn!(
+                    "{} is not a readable SSH public key",
+                    self.host_path(pub_path)
+                ),
             }
         }
 
@@ -177,7 +347,7 @@ impl Ctx<'_> {
         // algorithm implied by the file name, without opening the file.
         for private in &private_names {
             let public = PathBuf::from(format!("{}.pub", private.display()));
-            if public_files.contains(&public) {
+            if parsed_public.contains(&public) {
                 continue;
             }
             let name = private
@@ -247,8 +417,12 @@ impl Ctx<'_> {
         let backend = self
             .root
             .join("etc/crypto-policies/back-ends/opensshserver.config");
-        if !ssh.visited.contains(&backend) {
-            if let Ok(raw) = fs::read_to_string(&backend) {
+        let already_read = self
+            .fs
+            .resolve(&backend)
+            .is_ok_and(|real| ssh.visited.contains(&real));
+        if !already_read {
+            if let Some(raw) = self.fs.read_text(&backend) {
                 let location = self.host_path(&backend);
                 for (k, v) in parse_openssh_backend(&raw) {
                     directives.entry(k).or_insert((v, location.clone()));
@@ -294,9 +468,9 @@ impl Ctx<'_> {
         let base = self.root.join("etc/crypto-policies");
         let state = base.join("state/current");
         let config = base.join("config");
-        let (policy, source) = match first_value_line(&state) {
+        let (policy, source) = match self.first_value_line(&state) {
             Some(p) => (p, state),
-            None => match first_value_line(&config) {
+            None => match self.first_value_line(&config) {
                 Some(p) => (p, config),
                 None => return,
             },
@@ -305,15 +479,13 @@ impl Ctx<'_> {
         let base_policy = parts.next().unwrap_or("").to_string();
         let subpolicies: Vec<String> = parts.map(str::to_string).collect();
 
-        let mut backends: Vec<String> = fs::read_dir(base.join("back-ends"))
-            .map(|rd| {
-                rd.flatten()
-                    .map(|e| e.file_name().to_string_lossy().into_owned())
-                    .filter(|n| n.ends_with(".config"))
-                    .collect()
-            })
-            .unwrap_or_default();
-        backends.sort();
+        let backends: Vec<String> = self
+            .fs
+            .list_dir(&base.join("back-ends"))
+            .into_iter()
+            .map(|(name, _)| name)
+            .filter(|n| n.ends_with(".config"))
+            .collect();
 
         let mut extra = Map::new();
         extra.insert("policy".into(), Value::from(policy.clone()));
@@ -321,7 +493,10 @@ impl Ctx<'_> {
         extra.insert("subpolicies".into(), json!(subpolicies));
         extra.insert("backends".into(), json!(backends));
         let openssl_backend = base.join("back-ends/opensslcnf.config");
-        let tls = fs::read_to_string(&openssl_backend)
+        // The back-end is the body of the policy's SSL section, a flat list.
+        let tls = self
+            .fs
+            .read_text(&openssl_backend)
             .map(|raw| OpenSslSettings::parse_text(&raw))
             .unwrap_or_default();
         tls.write_into(&mut extra);
@@ -362,21 +537,24 @@ impl Ctx<'_> {
         let mut seen = BTreeSet::new();
         for rel in OPENSSL_CONFIG_PATHS {
             let path = self.root.join(rel);
-            if !path.is_file() {
+            if !self.fs.is_file(&path) {
                 continue;
             }
-            // Distro symlinks often point several of these at one file.
-            let canon = path.canonicalize().unwrap_or_else(|_| path.clone());
-            if !seen.insert(canon) {
+            // Distro symlinks often point several of these at one file. Resolve
+            // inside the scanned root, never on the machine running Boab.
+            let real = self.fs.resolve(&path).unwrap_or_else(|_| path.clone());
+            if !seen.insert(real) {
                 continue;
             }
-            let mut settings = OpenSslSettings::default();
+            let mut conf = OpenSslConf::default();
             let mut files = Vec::new();
-            self.read_openssl_file(&path, &mut settings, &mut files, 0);
+            self.read_openssl_file(&path, &mut conf, &mut files, 0);
+            let (settings, ssl_section) = conf.system_default();
             let location = self.host_path(&path);
             let mut extra = Map::new();
             settings.write_into(&mut extra);
             extra.insert("config_files".into(), json!(files));
+            extra.insert("ssl_section".into(), json!(ssl_section));
             let (status, reason) = if settings.has_hybrid_group() {
                 (
                     PqcStatus::Hybrid,
@@ -404,10 +582,12 @@ impl Ctx<'_> {
         }
     }
 
+    /// Read an OpenSSL config file into `conf`, splicing `.include` files in
+    /// at the point they appear, as OpenSSL does.
     fn read_openssl_file(
         &self,
         path: &Path,
-        settings: &mut OpenSslSettings,
+        conf: &mut OpenSslConf,
         files: &mut Vec<String>,
         depth: usize,
     ) {
@@ -418,7 +598,7 @@ impl Ctx<'_> {
         if files.contains(&host_path) {
             return;
         }
-        let Ok(raw) = fs::read_to_string(path) else {
+        let Some(raw) = self.fs.read_text(path) else {
             return;
         };
         files.push(host_path);
@@ -434,46 +614,32 @@ impl Ctx<'_> {
                 } else {
                     path.parent().unwrap_or(self.root).join(target)
                 };
-                if p.is_dir() {
-                    let mut entries: Vec<PathBuf> = fs::read_dir(&p)
-                        .map(|rd| {
-                            rd.flatten()
-                                .map(|e| e.path())
-                                .filter(|f| {
-                                    matches!(
-                                        f.extension().and_then(|x| x.to_str()),
-                                        Some("cnf") | Some("conf")
-                                    )
-                                })
-                                .collect()
-                        })
-                        .unwrap_or_default();
-                    entries.sort();
-                    for e in entries {
-                        self.read_openssl_file(&e, settings, files, depth + 1);
+                if self.fs.is_dir(&p) {
+                    for (name, e) in self.fs.list_dir(&p) {
+                        if name.ends_with(".cnf") || name.ends_with(".conf") {
+                            self.read_openssl_file(&e, conf, files, depth + 1);
+                        }
                     }
                 } else {
-                    self.read_openssl_file(&p, settings, files, depth + 1);
+                    self.read_openssl_file(&p, conf, files, depth + 1);
                 }
                 continue;
             }
-            if let Some((k, v)) = line.split_once('=') {
-                settings.set(k.trim(), v.trim());
-            }
+            conf.line(line);
         }
+    }
+
+    fn first_value_line(&self, path: &Path) -> Option<String> {
+        let raw = self.fs.read_text(path)?;
+        raw.lines()
+            .map(|l| strip_comment(l).trim())
+            .find(|l| !l.is_empty())
+            .map(str::to_string)
     }
 }
 
 fn strip_comment(line: &str) -> &str {
     line.split_once('#').map(|(a, _)| a).unwrap_or(line)
-}
-
-fn first_value_line(path: &Path) -> Option<String> {
-    let raw = fs::read_to_string(path).ok()?;
-    raw.lines()
-        .map(|l| strip_comment(l).trim())
-        .find(|l| !l.is_empty())
-        .map(str::to_string)
 }
 
 // --- sshd_config -------------------------------------------------------------
@@ -485,6 +651,7 @@ struct SshConfig {
     directives: BTreeMap<String, (String, String)>,
     /// HostKey paths on the scanned host.
     host_keys: Vec<String>,
+    /// Resolved (in-root) paths of every config file read, so each is read once.
     visited: BTreeSet<PathBuf>,
 }
 
@@ -497,10 +664,11 @@ impl SshConfig {
     }
 
     fn read(&mut self, ctx: &Ctx<'_>, path: &Path, depth: usize) {
-        if depth > 16 || !self.visited.insert(path.to_path_buf()) {
+        let real = ctx.fs.resolve(path).unwrap_or_else(|_| path.to_path_buf());
+        if depth > 16 || !self.visited.insert(real) {
             return;
         }
-        let Ok(raw) = fs::read_to_string(path) else {
+        let Some(raw) = ctx.fs.read_text(path) else {
             return;
         };
         let location = ctx.host_path(path);
@@ -568,16 +736,12 @@ fn expand_include(ctx: &Ctx<'_>, pattern: &str) -> Vec<PathBuf> {
         return vec![full];
     }
     let dir = full.parent().unwrap_or(ctx.root).to_path_buf();
-    let mut out: Vec<PathBuf> = fs::read_dir(&dir)
-        .map(|rd| {
-            rd.flatten()
-                .filter(|e| wildcard_match(&file_pat, &e.file_name().to_string_lossy()))
-                .map(|e| e.path())
-                .collect()
-        })
-        .unwrap_or_default();
-    out.sort();
-    out
+    ctx.fs
+        .list_dir(&dir)
+        .into_iter()
+        .filter(|(name, _)| wildcard_match(&file_pat, name))
+        .map(|(_, p)| p)
+        .collect()
 }
 
 fn wildcard_match(pattern: &str, text: &str) -> bool {
@@ -871,7 +1035,7 @@ impl OpenSslSettings {
         s
     }
 
-    /// First value wins, matching how Boab records sshd settings.
+    /// Later assignments replace earlier ones, as in OpenSSL config sections.
     fn set(&mut self, key: &str, value: &str) {
         let list = |v: &str| -> Vec<String> {
             v.split([':', ','])
@@ -886,20 +1050,12 @@ impl OpenSslSettings {
             return;
         }
         match key.strip_prefix("tls.").unwrap_or(&key) {
-            "minprotocol" if self.min_protocol.is_none() => {
-                self.min_protocol = Some(value.to_string())
-            }
-            "maxprotocol" if self.max_protocol.is_none() => {
-                self.max_protocol = Some(value.to_string())
-            }
-            "cipherstring" if self.cipher_string.is_none() => {
-                self.cipher_string = Some(value.to_string())
-            }
-            "ciphersuites" if self.ciphersuites.is_empty() => self.ciphersuites = list(value),
-            "groups" | "curves" if self.groups.is_empty() => self.groups = list(value),
-            "signaturealgorithms" if self.signature_algorithms.is_empty() => {
-                self.signature_algorithms = list(value)
-            }
+            "minprotocol" => self.min_protocol = Some(value.to_string()),
+            "maxprotocol" => self.max_protocol = Some(value.to_string()),
+            "cipherstring" => self.cipher_string = Some(value.to_string()),
+            "ciphersuites" => self.ciphersuites = list(value),
+            "groups" | "curves" => self.groups = list(value),
+            "signaturealgorithms" => self.signature_algorithms = list(value),
             _ => {}
         }
     }
@@ -940,6 +1096,70 @@ impl OpenSslSettings {
             "signature_algorithms".into(),
             json!(self.signature_algorithms),
         );
+    }
+}
+
+/// An OpenSSL config file split into sections. Within a section a later
+/// assignment of the same name replaces an earlier one.
+#[derive(Debug, Default)]
+pub struct OpenSslConf {
+    /// Section name -> (lower-cased key, value) in file order. The unnamed
+    /// leading section is `""`.
+    sections: BTreeMap<String, Vec<(String, String)>>,
+    current: String,
+}
+
+impl OpenSslConf {
+    pub fn parse_text(raw: &str) -> Self {
+        let mut c = Self::default();
+        for line in raw.lines() {
+            c.line(strip_comment(line).trim());
+        }
+        c
+    }
+
+    fn line(&mut self, line: &str) {
+        if let Some(name) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
+            self.current = name.trim().to_string();
+            return;
+        }
+        if let Some((k, v)) = line.split_once('=') {
+            self.sections
+                .entry(self.current.clone())
+                .or_default()
+                .push((k.trim().to_ascii_lowercase(), v.trim().to_string()));
+        }
+    }
+
+    /// Last value of `key` in `section`, OpenSSL's precedence.
+    fn get(&self, section: &str, key: &str) -> Option<&str> {
+        self.sections
+            .get(section)?
+            .iter()
+            .rev()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
+    }
+
+    /// Settings OpenSSL applies to every TLS context: the section named by
+    /// `system_default` in the `ssl_conf` module that `openssl_conf` selects.
+    /// Returns empty settings and `None` when that chain is not configured,
+    /// meaning OpenSSL's built-in defaults apply.
+    pub fn system_default(&self) -> (OpenSslSettings, Option<String>) {
+        let mut settings = OpenSslSettings::default();
+        let section = self
+            .get("", "openssl_conf")
+            .and_then(|init| self.get(init, "ssl_conf"))
+            .and_then(|ssl| self.get(ssl, "system_default"));
+        let Some(section) = section else {
+            return (settings, None);
+        };
+        if let Some(entries) = self.sections.get(section) {
+            for (k, v) in entries {
+                settings.set(k, v);
+            }
+        }
+        (settings, Some(section.to_string()))
     }
 }
 
@@ -1006,6 +1226,32 @@ mod tests {
         let h =
             classify_ssh_algorithm("HostKeyAlgorithms", "ssh-rsa-cert-v01@openssh.com").unwrap();
         assert_eq!(h.name, "RSA-SHA-1");
+    }
+
+    #[test]
+    fn openssl_last_value_wins_within_a_section() {
+        let s = OpenSslSettings::parse_text(
+            "MinProtocol = TLSv1\nGroups = X25519MLKEM768\nMinProtocol = TLSv1.2\nGroups = X25519\n",
+        );
+        assert_eq!(s.min_protocol.as_deref(), Some("TLSv1.2"));
+        assert!(!s.has_hybrid_group());
+    }
+
+    #[test]
+    fn openssl_settings_come_from_the_system_default_section_only() {
+        let c = OpenSslConf::parse_text(
+            "openssl_conf = init\n[init]\nssl_conf = ssl\n[ssl]\nsystem_default = sys\n\
+             [unused]\nGroups = X25519MLKEM768\nMinProtocol = TLSv1\n\
+             [sys]\nGroups = X25519:secp256r1\nMinProtocol = TLSv1.2\n",
+        );
+        let (s, section) = c.system_default();
+        assert_eq!(section.as_deref(), Some("sys"));
+        assert_eq!(s.min_protocol.as_deref(), Some("TLSv1.2"));
+        assert!(!s.has_hybrid_group());
+
+        // No system_default chain: OpenSSL defaults apply, nothing is recorded.
+        let (s, section) = OpenSslConf::parse_text("[x]\nMinProtocol = TLSv1\n").system_default();
+        assert_eq!((s.min_protocol, section), (None, None));
     }
 
     #[test]
