@@ -159,25 +159,41 @@ pub fn render(ws: &Workspace) -> Result<String> {
         human_date(today.date()),
         env!("CARGO_PKG_VERSION")
     ));
-    let mut scan_counts = [0usize; 3];
+    let mut scan_counts = [0usize; 5];
     for s in &scans {
         scan_counts[match s.scan_type {
             ScanType::Codebase => 0,
             ScanType::TlsEndpoint => 1,
-            // Host crypto and KMS imports count with certificate stores so
-            // the scope line keeps its existing wording.
-            ScanType::CertificateStore | ScanType::HostCrypto | ScanType::KmsListing => 2,
+            ScanType::CertificateStore => 2,
+            ScanType::HostCrypto => 3,
+            ScanType::KmsListing => 4,
         }] += 1;
     }
+    // Host and KMS counts appear only when present, so reports for
+    // workspaces without them are unchanged.
+    let mut extra_scope = String::new();
+    if scan_counts[3] > 0 {
+        extra_scope.push_str(&format!(
+            " &middot; {}",
+            plural(scan_counts[3], "host crypto scan", "host crypto scans")
+        ));
+    }
+    if scan_counts[4] > 0 {
+        extra_scope.push_str(&format!(
+            " &middot; {}",
+            plural(scan_counts[4], "KMS listing import", "KMS listing imports")
+        ));
+    }
     h.push_str(&format!(
-        "<p class=\"meta\">Assessment scope: {} &middot; {} &middot; {}</p>\n",
+        "<p class=\"meta\">Assessment scope: {} &middot; {} &middot; {}{}</p>\n",
         plural(scan_counts[0], "codebase scan", "codebase scans"),
         plural(scan_counts[1], "TLS endpoint scan", "TLS endpoint scans"),
         plural(
             scan_counts[2],
             "certificate store scan",
             "certificate store scans"
-        )
+        ),
+        extra_scope
     ));
     h.push_str("</div>\n</header>\n<main class=\"wrap\">\n");
 

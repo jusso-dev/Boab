@@ -80,14 +80,27 @@ asset:
 | `integrity_verified` | `true` when the password matched the store's integrity check, `false` when it did not, `null` with no password |
 
 `algorithm_name` is `RSA`, `ECDSA-P256`, `ECDSA-P384`, `ECDSA-P521`,
-`Ed25519` or `Ed448`, from the certificate public key only.
+`Ed25519` or `Ed448`, from the certificate public key only. EC sizes come
+from the named curve.
 
-Private key material is never read. For PKCS12 only the certificate
-chain is used. For JKS the protected key blob is skipped by length and
-never decoded. A JKS with a wrong password is still listed, with
-`integrity_verified = false` and a warning. Parsing stops at a JCEKS
-secret key entry (a serialised Java object), which is recorded with an
-unknown algorithm.
+Private key bytes are never recorded or logged. For JKS and JCEKS the
+protected key blob is skipped by length and never decrypted. For PKCS12
+the `p12-keystore` library decrypts shrouded key bags while parsing and
+holds them in memory until the scan of that file ends; Boab does not
+read them. Scan certificate-only truststores, or JKS, if even in-memory
+decryption is not acceptable.
+
+`integrity_verified` is `true` only when an integrity check actually ran
+and passed: the JKS keyed digest, or the PKCS#12 MAC. A PKCS#12 without a
+MAC gives `null`. A keystore with a wrong password is still listed, with
+`integrity_verified = false` and a warning.
+
+JCEKS secret key entries are Java-serialised `SealedObject`s. Boab walks
+the serialisation only to find where each entry ends (the sealed bytes
+are skipped unread), so later aliases are still listed. Secret key
+entries are recorded with `algorithm_name = unknown`, no `primitive`,
+and `seal_algorithm` (the algorithm protecting the key, e.g.
+`PBEWithMD5AndTripleDES`, not the key's own algorithm).
 
 Passwords are read from `--password-file` if needed. Boab never stores or
 logs the password.
@@ -106,6 +119,14 @@ the scanned host, so `/mnt/web01/etc/ssh/sshd_config` is recorded as
 `/etc/ssh/sshd_config`. The host label is `--host`, else
 `<root>/etc/hostname`, else (for `/`) the local host name.
 
+Symlinks are resolved inside the root: an absolute target is read from
+under the root, and `..` cannot climb above it, so a mounted image is
+never mixed with the scanning machine's own files. A path that exists
+but cannot be read (permissions, I/O error) is listed in the scan
+record's `config.collection_errors`, `error_message` says the inventory
+may be incomplete, and a warning is logged. Missing optional files are
+not errors.
+
 What it reads:
 
 | Source | Files | Asset kind |
@@ -114,9 +135,12 @@ What it reads:
 | SSH private host keys | Names only, from the directory listing. Never opened. Recorded only when no `.pub` sits beside them | `ssh_host_key` (`key`) |
 | sshd algorithm lists | `/etc/ssh/sshd_config`, its `Include` files (wildcards supported), then `/etc/crypto-policies/back-ends/opensshserver.config` for directives sshd_config leaves unset. `Match` blocks are skipped. First value wins, as in sshd | `ssh_config_algorithm` (`algorithm`), one per entry of `HostKeyAlgorithms`, `KexAlgorithms`, `Ciphers`, `MACs` |
 | RHEL/Fedora crypto policy | `/etc/crypto-policies/state/current`, else `/etc/crypto-policies/config`; the back-end file list; TLS settings from `back-ends/opensslcnf.config` | `os_crypto_policy` (`protocol_endpoint`) |
-| OpenSSL config | `/etc/ssl/openssl.cnf`, `/etc/pki/tls/openssl.cnf`, `/usr/lib/ssl/openssl.cnf`, `/usr/local/ssl/openssl.cnf`, `/etc/openssl/openssl.cnf`, following `.include` | `openssl_config` (`protocol_endpoint`) |
+| OpenSSL config | `/etc/ssl/openssl.cnf`, `/etc/pki/tls/openssl.cnf`, `/usr/lib/ssl/openssl.cnf`, `/usr/local/ssl/openssl.cnf`, `/etc/openssl/openssl.cnf`, following `.include`. Settings come only from the section OpenSSL applies system-wide (`openssl_conf` -> `ssl_conf` -> `system_default`, recorded as `ssl_section`); a later assignment in that section replaces an earlier one. Without that chain nothing is recorded and `allowed_protocols` is `null` (OpenSSL defaults) | `openssl_config` (`protocol_endpoint`) |
 
-SSH key comments (often `user@host`) are never recorded. SSH key sizes
+SSH key comments (often `user@host`) are never recorded. A `.pub` file
+that cannot be parsed does not hide its private key file: the key is
+still recorded from the private key file's name, with
+`public_key_available = false`. SSH key sizes
 come from the public key blob (RSA and DSA modulus length, ECDSA curve).
 
 PQC status:
@@ -152,6 +176,8 @@ done > aws-describe.json
 az keyvault key list --vault-name myvault > azure-list.json
 az keyvault key show --vault-name myvault --name mykey > azure-show.json
 gcloud kms keys list --keyring ring --location loc --format=json > gcp.json
+gcloud kms keys versions list --key k --keyring ring --location loc \
+  --format=json > gcp-versions.json
 
 boab scan kms aws-list.json aws-describe.json azure-list.json azure-show.json gcp.json
 ```
@@ -160,13 +186,22 @@ Boab does not call any cloud API; you run the export and pass the files.
 Each file may hold one JSON document, a JSON array, or several documents
 back to back. The provider is detected from the shape; pass
 `--provider aws|azure|gcp` to force it. The same key seen in a listing
-and a describe/show export is merged.
+and a describe/show export is merged. Keys are identified by their full
+reference (AWS ARN), so related multi-Region AWS keys, which share a
+KeyId, stay separate per region.
+
+GCP omits `primary` for asymmetric keys. `versionTemplate` only describes
+future versions, so it is recorded as `template_algorithm` and never
+used to classify the key. Without a versions export such a key is
+`unknown`; with one, the enabled versions decide (`version_algorithms`),
+and the weakest wins.
 
 Recorded per key (`kms_key`, asset type `key`): `provider`, `key_id`,
 `key_ref` (AWS ARN, versionless Azure key URI, GCP key resource name),
 `key_spec`, `key_usage`, `key_state`, `enabled`, `protection_level`,
 `key_manager`, `origin`, `created`, `expires`, `key_version`, `curve`,
-`symmetric`, `listing_sources`. `host` is the account scope:
+`symmetric`, `listing_sources`, and for GCP `template_algorithm` and
+`version_algorithms`. `host` is the account scope:
 `aws:<account>:<region>`, `azure:<vault>`, or
 `gcp:<project>/<location>/<keyRing>`. `location` is `key_ref`.
 
@@ -176,8 +211,11 @@ the modulus or curve length to work out the key size and drops the
 values.
 
 Key specs map to Boab algorithms: `RSA_2048` and friends to `RSA` with
-the size, `ECC_NIST_P256`, `EC_SIGN_P256_SHA256` and `EC` with `P-256`
-to `ECDSA-P256` (or `ECDH-P256` for key agreement), `SYMMETRIC_DEFAULT`
+the size (primitive `pke` for encrypt, decrypt, wrapKey and unwrapKey
+usage), `ECC_NIST_P256`, `EC_SIGN_P256_SHA256` and `EC` with `P-256`
+to `ECDSA-P256` (or `ECDH-P256` for key agreement), Azure `P-256K` and
+AWS `ECC_SECG_P256K1` to `ECDSA-secp256k1`, `ECC_NIST_EDWARDS25519` to
+`Ed25519`, `SYMMETRIC_DEFAULT`
 and `GOOGLE_SYMMETRIC_ENCRYPTION` to `AES-256-GCM`, `HMAC_*` to
 `HMAC-SHA*`, `ML_DSA_*` and `ML_KEM_*` to the matching FIPS 204 and 203
 names (`resistant`), and `KEM_XWING` to `X-Wing` (`hybrid`).
@@ -202,7 +240,12 @@ Dedup keys:
   - `crypto_policy:<host>`
   - `openssl_config:<host>:<location>`
   - `keystore:<host>:<location>:<alias>`
-  - `kms:<provider>:<key_id>`
+  - `kms:<provider>:<key_ref>`
+
+Host crypto, keystore and KMS assets are identified by where they live,
+so on a rescan the scanner-owned fields (algorithm, size, status,
+`parameter_set`, name) are refreshed from the new finding, for example
+when a keystore alias is reissued with a different key.
 
 Promotion is idempotent. Re-running the same scan does not add duplicate
 inventory entries and preserves user-set fields on existing assets:

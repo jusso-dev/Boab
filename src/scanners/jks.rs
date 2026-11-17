@@ -1,9 +1,12 @@
 //! Minimal Java KeyStore (JKS and JCEKS) reader.
 //!
 //! Reads entry aliases, entry types and the DER certificates stored with each
-//! entry. Protected private key and secret key blobs are skipped by length and
-//! never decoded. The store password is only used to check the keyed SHA-1
-//! integrity digest, the same check `keytool -list` performs.
+//! entry. Protected private key blobs are skipped by length and never decoded.
+//! JCEKS secret key entries are Java-serialised `SealedObject`s: Boab walks the
+//! serialisation grammar only to find where the entry ends, skips byte-array
+//! payloads (the sealed key) by length without copying them, and keeps only the
+//! sealing algorithm name. The store password is only used to check the keyed
+//! SHA-1 integrity digest, the same check `keytool -list` performs.
 
 use anyhow::{anyhow, bail, Result};
 use sha1::{Digest, Sha1};
@@ -39,6 +42,10 @@ pub struct JksEntry {
     pub created_unix_ms: i64,
     /// DER certificates, leaf first. Empty for secret key entries.
     pub certificates: Vec<Vec<u8>>,
+    /// JCEKS secret keys: the algorithm the key is sealed with (e.g.
+    /// `PBEWithMD5AndTripleDES`). This protects the key; it is not the key's
+    /// own algorithm, which is inside the sealed bytes and is not read.
+    pub seal_algorithm: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -49,9 +56,6 @@ pub struct JksStore {
     /// `Some(true)` when the password matched the integrity digest,
     /// `Some(false)` when it did not, `None` when no password was given.
     pub integrity_verified: Option<bool>,
-    /// True when parsing stopped at a JCEKS secret key entry, which is a
-    /// serialised Java object Boab does not decode. Later entries are not listed.
-    pub truncated: bool,
 }
 
 /// True when the bytes start with the JKS or JCEKS magic number.
@@ -80,7 +84,6 @@ pub fn parse(bytes: &[u8], password: Option<&str>) -> Result<JksStore> {
         bail!("keystore claims {} entries", count);
     }
     let mut entries = Vec::new();
-    let mut truncated = false;
     for _ in 0..count {
         let tag = r.u32()?;
         let alias = r.utf()?;
@@ -103,6 +106,7 @@ pub fn parse(bytes: &[u8], password: Option<&str>) -> Result<JksStore> {
                     entry_type: JksEntryType::PrivateKey,
                     created_unix_ms,
                     certificates,
+                    seal_algorithm: None,
                 });
             }
             TAG_TRUSTED_CERT => {
@@ -112,24 +116,27 @@ pub fn parse(bytes: &[u8], password: Option<&str>) -> Result<JksStore> {
                     entry_type: JksEntryType::TrustedCertificate,
                     created_unix_ms,
                     certificates: vec![cert],
+                    seal_algorithm: None,
                 });
             }
             TAG_SECRET_KEY if store_type == "JCEKS" => {
+                let mut walker = JavaStream::new(&mut r);
+                walker.stream_header()?;
+                walker.content()?;
                 entries.push(JksEntry {
                     alias,
                     entry_type: JksEntryType::SecretKey,
                     created_unix_ms,
                     certificates: Vec::new(),
+                    seal_algorithm: walker.seal_algorithm(),
                 });
-                truncated = true;
-                break;
             }
             other => bail!("unknown keystore entry tag {}", other),
         }
     }
 
     let integrity_verified = match password {
-        Some(pw) if !truncated => {
+        Some(pw) => {
             let body_end = r.pos;
             let digest = bytes
                 .get(body_end..body_end + 20)
@@ -143,8 +150,358 @@ pub fn parse(bytes: &[u8], password: Option<&str>) -> Result<JksStore> {
         store_type,
         entries,
         integrity_verified,
-        truncated,
     })
+}
+
+/// Decode Java modified UTF-8: NUL is `C0 80` and characters outside the BMP
+/// are surrogate pairs, each encoded as three bytes. Invalid sequences become
+/// U+FFFD.
+pub fn decode_modified_utf8(bytes: &[u8]) -> String {
+    let mut units: Vec<u16> = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        let cont = |j: usize| {
+            bytes
+                .get(j)
+                .filter(|c| *c & 0xC0 == 0x80)
+                .map(|c| (*c & 0x3F) as u16)
+        };
+        if b < 0x80 {
+            units.push(b as u16);
+            i += 1;
+        } else if b & 0xE0 == 0xC0 {
+            match cont(i + 1) {
+                Some(c) => {
+                    units.push(((b as u16 & 0x1F) << 6) | c);
+                    i += 2;
+                }
+                None => {
+                    units.push(0xFFFD);
+                    i += 1;
+                }
+            }
+        } else if b & 0xF0 == 0xE0 {
+            match (cont(i + 1), cont(i + 2)) {
+                (Some(c1), Some(c2)) => {
+                    units.push(((b as u16 & 0x0F) << 12) | (c1 << 6) | c2);
+                    i += 3;
+                }
+                _ => {
+                    units.push(0xFFFD);
+                    i += 1;
+                }
+            }
+        } else {
+            units.push(0xFFFD);
+            i += 1;
+        }
+    }
+    String::from_utf16_lossy(&units)
+}
+
+/// Walks one Java serialisation stream (`java.io.ObjectOutputStream`) to find
+/// its end. It records class descriptors so field values can be framed, and
+/// keeps string values (class and algorithm names). Primitive arrays, which
+/// hold the sealed key bytes, are skipped by length and never copied.
+struct JavaStream<'r, 'a> {
+    r: &'r mut Reader<'a>,
+    /// Handle table: `Some(fields)` for class descriptors, `None` otherwise.
+    handles: Vec<Handle>,
+    /// String values seen, in stream order.
+    strings: Vec<String>,
+    depth: usize,
+}
+
+#[derive(Clone)]
+enum Handle {
+    Class(Option<ClassDesc>),
+    Other,
+}
+
+#[derive(Clone)]
+struct ClassDesc {
+    flags: u8,
+    /// Field type codes, in stream order.
+    fields: Vec<u8>,
+    /// Element type for array classes (`[B` gives `B`), else 0.
+    array_code: u8,
+    parent: Option<Box<ClassDesc>>,
+}
+
+const TC_NULL: u8 = 0x70;
+const TC_REFERENCE: u8 = 0x71;
+const TC_CLASSDESC: u8 = 0x72;
+const TC_OBJECT: u8 = 0x73;
+const TC_STRING: u8 = 0x74;
+const TC_ARRAY: u8 = 0x75;
+const TC_CLASS: u8 = 0x76;
+const TC_BLOCKDATA: u8 = 0x77;
+const TC_ENDBLOCKDATA: u8 = 0x78;
+const TC_LONGSTRING: u8 = 0x7C;
+const TC_PROXYCLASSDESC: u8 = 0x7D;
+const TC_ENUM: u8 = 0x7E;
+const TC_BLOCKDATALONG: u8 = 0x7A;
+const SC_WRITE_METHOD: u8 = 0x01;
+const SC_SERIALIZABLE: u8 = 0x02;
+const SC_EXTERNALIZABLE: u8 = 0x04;
+const BASE_HANDLE: u32 = 0x7E_0000;
+const MAX_DEPTH: usize = 64;
+const MAX_HANDLES: usize = 10_000;
+
+impl<'r, 'a> JavaStream<'r, 'a> {
+    fn new(r: &'r mut Reader<'a>) -> Self {
+        Self {
+            r,
+            handles: Vec::new(),
+            strings: Vec::new(),
+            depth: 0,
+        }
+    }
+
+    /// The sealing algorithm of a `javax.crypto.SealedObject`: the last
+    /// algorithm-like string in the stream (`sealAlg`).
+    fn seal_algorithm(&self) -> Option<String> {
+        self.strings
+            .iter()
+            .rev()
+            .find(|s| s.starts_with("PBE") || s.contains("With") || s.starts_with("AES"))
+            .cloned()
+    }
+
+    fn stream_header(&mut self) -> Result<()> {
+        if self.r.u16()? != 0xACED || self.r.u16()? != 5 {
+            bail!("JCEKS secret key entry is not a Java serialisation stream");
+        }
+        Ok(())
+    }
+
+    fn u8(&mut self) -> Result<u8> {
+        Ok(self.r.take(1)?[0])
+    }
+
+    fn new_handle(&mut self, h: Handle) -> Result<usize> {
+        if self.handles.len() >= MAX_HANDLES {
+            bail!("Java serialisation stream too large");
+        }
+        self.handles.push(h);
+        Ok(self.handles.len() - 1)
+    }
+
+    fn reference(&mut self) -> Result<Handle> {
+        let h = self.r.u32()?;
+        h.checked_sub(BASE_HANDLE)
+            .and_then(|i| self.handles.get(i as usize).cloned())
+            .ok_or_else(|| anyhow!("bad Java serialisation handle"))
+    }
+
+    fn enter(&mut self) -> Result<()> {
+        self.depth += 1;
+        if self.depth > MAX_DEPTH {
+            bail!("Java serialisation stream nested too deeply");
+        }
+        Ok(())
+    }
+
+    /// One `content` item: an object or a block of data.
+    fn content(&mut self) -> Result<()> {
+        let tc = self.u8()?;
+        match tc {
+            TC_BLOCKDATA => {
+                let n = self.u8()? as usize;
+                self.r.skip(n)
+            }
+            TC_BLOCKDATALONG => {
+                let n = self.r.u32()? as usize;
+                self.r.skip(n)
+            }
+            _ => self.object_tc(tc).map(|_| ()),
+        }
+    }
+
+    fn object(&mut self) -> Result<Handle> {
+        let tc = self.u8()?;
+        self.object_tc(tc)
+    }
+
+    fn object_tc(&mut self, tc: u8) -> Result<Handle> {
+        self.enter()?;
+        let out = match tc {
+            TC_NULL => Ok(Handle::Other),
+            TC_REFERENCE => self.reference(),
+            TC_CLASSDESC | TC_PROXYCLASSDESC => Ok(Handle::Class(self.class_desc_tc(tc)?)),
+            TC_CLASS => {
+                let d = self.class_desc()?;
+                self.new_handle(Handle::Class(d))?;
+                Ok(Handle::Other)
+            }
+            TC_STRING | TC_LONGSTRING => {
+                let n = if tc == TC_STRING {
+                    self.r.u16()? as usize
+                } else {
+                    usize::try_from(self.r.u64()?).map_err(|_| anyhow!("string too long"))?
+                };
+                let s = decode_modified_utf8(self.r.take(n)?);
+                self.new_handle(Handle::Other)?;
+                self.strings.push(s);
+                Ok(Handle::Other)
+            }
+            TC_ENUM => {
+                self.class_desc()?;
+                let idx = self.new_handle(Handle::Other)?;
+                self.object()?;
+                Ok(self.handles[idx].clone())
+            }
+            TC_ARRAY => {
+                let code = self.class_desc()?.map(|d| d.array_code).unwrap_or(0);
+                self.new_handle(Handle::Other)?;
+                let len = self.r.u32()? as usize;
+                // Primitive arrays (the sealed key bytes) are skipped unread.
+                match code {
+                    b'B' | b'Z' => self.r.skip(len)?,
+                    b'C' | b'S' => self.r.skip(len.saturating_mul(2))?,
+                    b'I' | b'F' => self.r.skip(len.saturating_mul(4))?,
+                    b'J' | b'D' => self.r.skip(len.saturating_mul(8))?,
+                    b'L' | b'[' => {
+                        for _ in 0..len {
+                            self.object()?;
+                        }
+                    }
+                    _ => bail!("unsupported Java array type"),
+                }
+                Ok(Handle::Other)
+            }
+            TC_OBJECT => {
+                let desc = self.class_desc()?;
+                let idx = self.new_handle(Handle::Other)?;
+                let mut chain = Vec::new();
+                let mut d = desc;
+                while let Some(c) = d {
+                    d = c.parent.as_deref().cloned();
+                    chain.push(c);
+                }
+                // Superclass data comes first.
+                for c in chain.iter().rev() {
+                    if c.flags & SC_EXTERNALIZABLE != 0 {
+                        bail!("externalizable classes are not supported");
+                    }
+                    if c.flags & SC_SERIALIZABLE != 0 {
+                        for code in &c.fields {
+                            self.field_value(*code)?;
+                        }
+                        if c.flags & SC_WRITE_METHOD != 0 {
+                            self.annotation()?;
+                        }
+                    }
+                }
+                Ok(self.handles[idx].clone())
+            }
+            other => bail!("unexpected Java serialisation tag {:#x}", other),
+        };
+        self.depth -= 1;
+        out
+    }
+
+    fn field_value(&mut self, code: u8) -> Result<()> {
+        match code {
+            b'B' | b'Z' => self.r.skip(1),
+            b'C' | b'S' => self.r.skip(2),
+            b'I' | b'F' => self.r.skip(4),
+            b'J' | b'D' => self.r.skip(8),
+            b'L' | b'[' => self.object().map(|_| ()),
+            _ => bail!("unknown Java field type"),
+        }
+    }
+
+    /// `classAnnotation` / `objectAnnotation`: contents up to TC_ENDBLOCKDATA.
+    fn annotation(&mut self) -> Result<()> {
+        loop {
+            let tc = self.u8()?;
+            if tc == TC_ENDBLOCKDATA {
+                return Ok(());
+            }
+            match tc {
+                TC_BLOCKDATA => {
+                    let n = self.u8()? as usize;
+                    self.r.skip(n)?;
+                }
+                TC_BLOCKDATALONG => {
+                    let n = self.r.u32()? as usize;
+                    self.r.skip(n)?;
+                }
+                _ => {
+                    self.object_tc(tc)?;
+                }
+            }
+        }
+    }
+
+    fn class_desc(&mut self) -> Result<Option<ClassDesc>> {
+        let tc = self.u8()?;
+        match tc {
+            TC_NULL => Ok(None),
+            TC_REFERENCE => match self.reference()? {
+                Handle::Class(d) => Ok(d),
+                _ => bail!("Java handle is not a class descriptor"),
+            },
+            TC_CLASSDESC | TC_PROXYCLASSDESC => self.class_desc_tc(tc),
+            _ => bail!("expected a Java class descriptor"),
+        }
+    }
+
+    fn class_desc_tc(&mut self, tc: u8) -> Result<Option<ClassDesc>> {
+        self.enter()?;
+        let idx = self.new_handle(Handle::Class(None))?;
+        let desc = if tc == TC_PROXYCLASSDESC {
+            let n = self.r.u32()?;
+            for _ in 0..n {
+                let _ = self.r.utf()?;
+            }
+            self.annotation()?;
+            let parent = self.class_desc()?.map(Box::new);
+            ClassDesc {
+                flags: 0,
+                fields: Vec::new(),
+                array_code: 0,
+                parent,
+            }
+        } else {
+            let name = self.r.utf()?;
+            self.r.skip(8)?; // serialVersionUID
+            let flags = self.u8()?;
+            let count = self.r.u16()?;
+            let mut fields = Vec::new();
+            for _ in 0..count {
+                let code = self.u8()?;
+                let _field_name = self.r.utf()?;
+                if code == b'L' || code == b'[' {
+                    self.object()?; // className1, a String
+                }
+                fields.push(code);
+            }
+            self.annotation()?;
+            let parent = self.class_desc()?.map(Box::new);
+            ClassDesc {
+                flags,
+                fields,
+                array_code: array_code(&name),
+                parent,
+            }
+        };
+        self.handles[idx] = Handle::Class(Some(desc.clone()));
+        self.depth -= 1;
+        Ok(Some(desc))
+    }
+}
+
+/// `[B` -> `B`, `[Ljava.lang.String;` -> `L`, anything else -> 0.
+fn array_code(class_name: &str) -> u8 {
+    let b = class_name.as_bytes();
+    if b.first() == Some(&b'[') {
+        b.get(1).copied().unwrap_or(0)
+    } else {
+        0
+    }
 }
 
 /// `SHA-1(password as UTF-16BE || "Mighty Aphrodite" || body)`.
@@ -196,11 +553,10 @@ impl Reader<'_> {
         Ok(u64::from_be_bytes(a))
     }
 
-    /// Java `DataOutput.writeUTF`: u16 length then modified UTF-8. Aliases are
-    /// ASCII in practice; anything else is decoded lossily.
+    /// Java `DataOutput.writeUTF`: u16 length then modified UTF-8.
     fn utf(&mut self) -> Result<String> {
         let n = self.u16()? as usize;
-        Ok(String::from_utf8_lossy(self.take(n)?).into_owned())
+        Ok(decode_modified_utf8(self.take(n)?))
     }
 
     fn certificate(&mut self, version: u32) -> Result<Vec<u8>> {
@@ -285,6 +641,59 @@ mod tests {
             Some(false)
         );
         assert_eq!(parse(&bytes, None).unwrap().integrity_verified, None);
+    }
+
+    #[test]
+    fn modified_utf8_keeps_supplementary_characters_distinct() {
+        // Java writeUTF encodes U+1F600 as the surrogate pair D83D DE00, each
+        // as three bytes.
+        let enc = |hi: u16, lo: u16| {
+            let mut v = vec![b'a'];
+            for u in [hi, lo] {
+                v.push(0xE0 | (u >> 12) as u8);
+                v.push(0x80 | ((u >> 6) & 0x3F) as u8);
+                v.push(0x80 | (u & 0x3F) as u8);
+            }
+            v
+        };
+        let a = decode_modified_utf8(&enc(0xD83D, 0xDE00));
+        let b = decode_modified_utf8(&enc(0xD83D, 0xDE01));
+        assert_eq!(a, "a\u{1F600}");
+        assert_eq!(b, "a\u{1F601}");
+        assert_ne!(a, b);
+        assert_eq!(decode_modified_utf8(&[0xC0, 0x80]), "\u{0}");
+    }
+
+    #[test]
+    fn jceks_secret_entries_do_not_stop_the_listing() {
+        // Built by keytool: two secret keys, then a trusted certificate.
+        let bytes = include_bytes!("../../tests/fixtures/jceks/secrets.jceks");
+        let store = parse(bytes, Some("changeit")).unwrap();
+        assert_eq!(store.store_type, "JCEKS");
+        // JCEKS writes entries in hash order; the trusted certificate comes
+        // after a secret key entry in this file.
+        let mut aliases: Vec<&str> = store.entries.iter().map(|e| e.alias.as_str()).collect();
+        let last_secret = store
+            .entries
+            .iter()
+            .position(|e| e.entry_type == JksEntryType::SecretKey)
+            .unwrap();
+        let cert = store
+            .entries
+            .iter()
+            .position(|e| e.entry_type == JksEntryType::TrustedCertificate)
+            .unwrap();
+        assert!(cert > last_secret, "certificate must follow a secret key");
+        aliases.sort();
+        assert_eq!(aliases, vec!["aes-data", "hmac-sig", "zz-partner"]);
+        for e in &store.entries {
+            if e.entry_type == JksEntryType::SecretKey {
+                assert_eq!(e.seal_algorithm.as_deref(), Some("PBEWithMD5AndTripleDES"));
+                assert!(e.certificates.is_empty());
+            }
+        }
+        // The walker reached the real end of the body: the digest matches.
+        assert_eq!(store.integrity_verified, Some(true));
     }
 
     #[test]

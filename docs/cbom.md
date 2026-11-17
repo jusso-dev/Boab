@@ -106,16 +106,18 @@ Kind-specific `parameter_set` fields:
 | `ssh_host_key` | `ssh_key_type` (e.g. `ssh-rsa`, `ecdsa-sha2-nistp256`), `fingerprint_sha256` (OpenSSH `SHA256:...`, absent when only the private key file was seen), `public_key_available`, `private_key_present`, `certificate` |
 | `ssh_config_algorithm` | `directive`, `ssh_name` (as written in the config), `list_modifier` (`replace`, `append`, `prepend`) |
 | `os_crypto_policy` | `policy`, `base_policy`, `subpolicies[]`, `backends[]`, `min_protocol`, `max_protocol`, `allowed_protocols[]` or null, `cipher_string`, `ciphersuites[]`, `groups[]`, `signature_algorithms[]`, `pqc_reason` |
-| `openssl_config` | `min_protocol`, `max_protocol`, `allowed_protocols[]` or null, `cipher_string`, `ciphersuites[]`, `groups[]`, `signature_algorithms[]`, `config_files[]`, `pqc_reason` |
-| `keystore_entry` | `store_type`, `alias`, `entry_type`, `chain_length`, `integrity_verified`, `public_key_algorithm`, `public_key_algorithm_oid`, `signature_algorithm`, `subject`, `issuer`, `not_before_unix`, `not_after_unix`, `certificate_sha256` |
-| `kms_key` | `provider` (`aws`, `azure`, `gcp`), `key_id`, `key_ref`, `key_spec`, `key_usage`, `key_state`, `enabled`, `protection_level`, `key_manager`, `origin`, `created`, `expires`, `key_version`, `curve`, `symmetric`, `listing_sources[]` |
+| `openssl_config` | `ssl_section` (the `system_default` section, or null), `min_protocol`, `max_protocol`, `allowed_protocols[]` or null, `cipher_string`, `ciphersuites[]`, `groups[]`, `signature_algorithms[]`, `config_files[]`, `pqc_reason` |
+| `keystore_entry` | `store_type`, `alias`, `entry_type`, `chain_length`, `integrity_verified` (`true` only when a digest or MAC was checked), `seal_algorithm` (JCEKS secret keys), `public_key_algorithm`, `public_key_algorithm_oid`, `signature_algorithm`, `subject`, `issuer`, `not_before_unix`, `not_after_unix`, `certificate_sha256` |
+| `kms_key` | `provider` (`aws`, `azure`, `gcp`), `key_id`, `key_ref`, `key_spec`, `key_usage`, `key_state`, `enabled`, `protection_level`, `key_manager`, `origin`, `created`, `expires`, `key_version`, `curve`, `symmetric`, `listing_sources[]`, `template_algorithm`, `version_algorithms[]` (GCP) |
 
 Never present: private key bytes, keystore passwords, SSH key comments,
 KMS public key components, descriptions, tags or labels.
 
 Scan records for these sources have `scan_type` `host_crypto` (host
 scanner) or `kms_listing` (KMS scanner). Keystores stay
-`certificate_store`.
+`certificate_store`. A host scan that could not read some paths keeps
+`status` `completed` but sets `error_message` and lists the paths in
+`config.collection_errors`; treat its inventory as partial.
 
 ### Fields on every new component (CBOM)
 
@@ -171,8 +173,11 @@ The new components validate against the full CycloneDX 1.6 schema.
   `parameter_set.location`.
 - Identity across imports: `boab:asset_key` (or
   `parameter_set.asset_key`).
-- Finding: flag `boab:quantum_vulnerable` = `true` (or
-  `risk_score.triage_tier` <= 3 from the JSON report).
+- Finding: flag `boab:quantum_vulnerable` = `true`, or the asset's
+  `quantum_vulnerable` field in the JSON report. This includes `hybrid`
+  and `unknown` assets. `risk_score.triage_tier` <= 3 is a separate
+  priority filter, not an equivalent selector: a hybrid key can be
+  quantum-vulnerable and still sit in tier 4.
 
 ### Plan JSON shape
 

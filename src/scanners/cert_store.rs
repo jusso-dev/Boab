@@ -3,8 +3,17 @@
 //!
 //! Keystores (PKCS#12, JKS, JCEKS) also produce one `keystore_entry` finding
 //! per alias, with the key algorithm and size taken from the entry's
-//! certificate public key. Private key bytes are never inspected, recorded or
-//! logged; for JKS they are skipped by length without being decoded.
+//! certificate public key. Private key bytes are never recorded or logged.
+//!
+//! How each format treats private key bytes:
+//! - JKS and JCEKS: protected key blobs are skipped by length and never
+//!   decrypted or decoded (`src/scanners/jks.rs`).
+//! - PKCS#12: the `p12-keystore` importer decrypts shrouded key bags with the
+//!   store password as part of parsing and holds the plaintext in memory until
+//!   the store is dropped at the end of `parse_pkcs12`. Boab never reads those
+//!   bytes (`PrivateKeyChain::key` is not called) and they never leave the
+//!   function. Use a certificate-only truststore, or JKS, where even in-memory
+//!   decryption is not acceptable.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -190,6 +199,9 @@ fn parse_pkcs12(
     host: &str,
 ) -> Result<Vec<Finding>> {
     use p12_keystore::{KeyStore, KeyStoreEntry};
+    // `from_pkcs12` verifies the MAC only when the file carries one, so
+    // record whether there was one to verify.
+    let mac_present = pkcs12_has_mac(bytes);
     let store = KeyStore::from_pkcs12(bytes, password.unwrap_or(""))
         .with_context(|| format!("parse PKCS12 {}", file.display()))?;
     let mut out = Vec::new();
@@ -214,16 +226,58 @@ fn parse_pkcs12(
             }
         }
     }
+    let meta = KeystoreMeta {
+        store_type: "PKCS12",
+        // A successful parse with a MAC means the MAC matched; without one,
+        // nothing was checked.
+        integrity_verified: mac_present.then_some(true),
+    };
     for (alias, entry_type, certs) in entries {
-        let store = KeystoreMeta {
-            store_type: "PKCS12",
-            integrity_verified: Some(true),
-        };
         out.push(keystore_entry_finding(
-            scan_id, file, host, &store, &alias, entry_type, &certs,
+            scan_id, file, host, &meta, &alias, entry_type, &certs, None,
         ));
     }
     Ok(out)
+}
+
+/// True when a PFX carries `macData`: the outer SEQUENCE has a third element
+/// after `version` and `authSafe`.
+#[cfg(feature = "pkcs12")]
+fn pkcs12_has_mac(bytes: &[u8]) -> bool {
+    fn tlv(b: &[u8]) -> Option<(usize, usize)> {
+        // Returns (header length, content length).
+        let first = *b.get(1)?;
+        if first < 0x80 {
+            return Some((2, first as usize));
+        }
+        let n = (first & 0x7F) as usize;
+        if n == 0 || n > 4 {
+            return None;
+        }
+        let mut len = 0usize;
+        for i in 0..n {
+            len = (len << 8) | *b.get(2 + i)? as usize;
+        }
+        Some((2 + n, len))
+    }
+    let Some((h, len)) = tlv(bytes) else {
+        return false;
+    };
+    let Some(mut body) = bytes.get(h..h.saturating_add(len)) else {
+        return false;
+    };
+    let mut count = 0;
+    while !body.is_empty() {
+        let Some((eh, el)) = tlv(body) else {
+            return false;
+        };
+        let Some(rest) = body.get(eh.saturating_add(el)..) else {
+            return false;
+        };
+        body = rest;
+        count += 1;
+    }
+    count >= 3
 }
 
 fn parse_jks(
@@ -261,13 +315,8 @@ fn parse_jks(
             &entry.alias,
             entry.entry_type.as_str(),
             &certs,
+            entry.seal_algorithm.as_deref(),
         ));
-    }
-    if store.truncated {
-        tracing::warn!(
-            "{}: JCEKS secret key entry found; later entries are not listed",
-            file.display()
-        );
     }
     Ok(out)
 }
@@ -279,7 +328,9 @@ struct KeystoreMeta {
 
 /// One inventory key per keystore alias. Algorithm and size come from the
 /// leaf certificate's public key. Secret key entries have no certificate and
-/// are recorded with an unknown algorithm.
+/// are recorded with an unknown algorithm and no primitive (the key could be
+/// AES, HMAC or anything else; its type is inside the sealed bytes).
+#[allow(clippy::too_many_arguments)]
 fn keystore_entry_finding(
     scan_id: Uuid,
     file: &Path,
@@ -288,6 +339,7 @@ fn keystore_entry_finding(
     alias: &str,
     entry_type: &str,
     certs: &[&[u8]],
+    seal_algorithm: Option<&str>,
 ) -> Finding {
     use x509_parser::prelude::*;
     let location = file.display().to_string();
@@ -297,6 +349,9 @@ fn keystore_entry_finding(
     extra.insert("entry_type".into(), Value::from(entry_type));
     extra.insert("chain_length".into(), Value::from(certs.len()));
     extra.insert("integrity_verified".into(), json!(store.integrity_verified));
+    if let Some(seal) = seal_algorithm {
+        extra.insert("seal_algorithm".into(), Value::from(seal));
+    }
     let mut algorithm = "unknown".to_string();
     let mut status = PqcStatus::Unknown;
     let mut primitive = None;
@@ -330,8 +385,6 @@ fn keystore_entry_finding(
             "certificate_sha256".into(),
             Value::from(hex::encode(Sha256::digest(certs[0]))),
         );
-    } else if entry_type == "secret_key" {
-        primitive = Some("block_cipher");
     }
     HostAsset {
         kind: KIND_KEYSTORE_ENTRY,
@@ -351,7 +404,9 @@ fn public_key_bits(cert: &x509_parser::certificate::X509Certificate<'_>) -> Opti
     use x509_parser::public_key::PublicKey;
     match cert.public_key().parsed().ok()? {
         PublicKey::RSA(rsa) => Some(rsa.key_size() as u64).filter(|b| *b > 0),
-        PublicKey::EC(ec) => Some(ec.key_size() as u64).filter(|b| *b > 0),
+        // The named curve gives the real size; the point width does not for
+        // P-521 (it is byte-aligned to 528 bits).
+        PublicKey::EC(ec) => ec_curve_bits(cert).or(Some(ec.key_size() as u64).filter(|b| *b > 0)),
         _ => match cert
             .public_key()
             .algorithm
@@ -363,6 +418,19 @@ fn public_key_bits(cert: &x509_parser::certificate::X509Certificate<'_>) -> Opti
             "1.3.101.113" => Some(456),
             _ => None,
         },
+    }
+}
+
+fn ec_curve_bits(cert: &x509_parser::certificate::X509Certificate<'_>) -> Option<u64> {
+    let params = cert.public_key().algorithm.parameters.as_ref()?;
+    let oid = params.as_oid().ok()?.to_id_string();
+    match oid.as_str() {
+        "1.2.840.10045.3.1.7" | "1.3.132.0.10" => Some(256), // P-256, secp256k1
+        "1.3.132.0.34" => Some(384),
+        "1.3.132.0.35" => Some(521),
+        "1.2.840.10045.3.1.1" => Some(192),
+        "1.3.132.0.33" => Some(224),
+        _ => None,
     }
 }
 

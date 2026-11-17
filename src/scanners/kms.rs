@@ -84,6 +84,11 @@ pub struct KmsKey {
     pub version: Option<String>,
     /// Which export(s) the key was seen in, e.g. `describe-key`.
     pub sources: Vec<String>,
+    /// GCP: algorithm for new versions (`versionTemplate`). Describes future
+    /// versions only, so it is recorded but never used to classify the key.
+    pub template_algorithm: Option<String>,
+    /// GCP: algorithms of enabled versions from `gcloud kms keys versions list`.
+    pub version_algorithms: Vec<String>,
 }
 
 pub fn scan_files(files: &[PathBuf], options: &KmsOptions) -> Result<Scan> {
@@ -106,6 +111,8 @@ pub fn scan_files(files: &[PathBuf], options: &KmsOptions) -> Result<Scan> {
     scan.status = ScanStatus::Running;
 
     // Merge the same key seen in several exports (list + describe/show).
+    // Identity is the full reference (AWS ARN), not the bare key id: related
+    // multi-Region keys share a KeyId but are separate keys in each region.
     let mut keys: BTreeMap<(String, String), KmsKey> = BTreeMap::new();
     let mut per_file = Vec::new();
     for file in files {
@@ -115,7 +122,7 @@ pub fn scan_files(files: &[PathBuf], options: &KmsOptions) -> Result<Scan> {
         per_file.push(json!({ "file": file.display().to_string(), "keys": parsed.len() }));
         for k in parsed {
             let provider = k.provider.map(Provider::as_str).unwrap_or("").to_string();
-            match keys.entry((provider, k.key_id.clone())) {
+            match keys.entry((provider, k.key_ref.clone())) {
                 std::collections::btree_map::Entry::Occupied(mut e) => merge(e.get_mut(), k),
                 std::collections::btree_map::Entry::Vacant(e) => {
                     e.insert(k);
@@ -150,6 +157,7 @@ fn merge(into: &mut KmsKey, from: KmsKey) {
         ($($f:ident),*) => { $( if into.$f.is_none() { into.$f = from.$f; } )* };
     }
     fill!(
+        template_algorithm,
         key_spec,
         key_usage,
         key_state,
@@ -163,12 +171,13 @@ fn merge(into: &mut KmsKey, from: KmsKey) {
         expires,
         version
     );
-    // Prefer the longer reference (an ARN over a bare id).
-    if from.key_ref.len() > into.key_ref.len() {
-        into.key_ref = from.key_ref;
-    }
     if into.scope.is_empty() {
         into.scope = from.scope;
+    }
+    for a in from.version_algorithms {
+        if !into.version_algorithms.contains(&a) {
+            into.version_algorithms.push(a);
+        }
     }
     for s in from.sources {
         if !into.sources.contains(&s) {
@@ -430,25 +439,27 @@ fn parse_gcp(v: &Value) -> Vec<KmsKey> {
     let Some(name) = s(v, "name") else {
         return Vec::new();
     };
-    // projects/<p>/locations/<l>/keyRings/<r>/cryptoKeys/<k>
-    let parts: Vec<&str> = name.split('/').collect();
-    let part = |label: &str| {
-        parts
-            .iter()
-            .position(|p| *p == label)
-            .and_then(|i| parts.get(i + 1))
-            .copied()
-            .unwrap_or("")
-    };
-    let scope = format!(
-        "gcp:{}/{}/{}",
-        part("projects"),
-        part("locations"),
-        part("keyRings")
-    );
+    // `gcloud kms keys versions list` item: evidence for the parent key.
+    if let Some((key_name, version)) = name.split_once("/cryptoKeyVersions/") {
+        let state = s(v, "state");
+        let enabled = state.as_deref() == Some("ENABLED");
+        return vec![KmsKey {
+            provider: Some(Provider::Gcp),
+            scope: gcp_scope(key_name),
+            key_id: key_name.to_string(),
+            key_ref: key_name.to_string(),
+            protection_level: s(v, "protectionLevel"),
+            version_algorithms: s(v, "algorithm").filter(|_| enabled).into_iter().collect(),
+            sources: vec![format!("versions list ({})", version)],
+            ..Default::default()
+        }];
+    }
+    let scope = gcp_scope(&name);
     let primary = v.get("primary").cloned().unwrap_or(Value::Null);
     let template = v.get("versionTemplate").cloned().unwrap_or(Value::Null);
-    let algorithm = s(&primary, "algorithm").or_else(|| s(&template, "algorithm"));
+    // Only `primary` describes existing key material. GCP omits it for
+    // asymmetric keys; their algorithm needs a versions export.
+    let algorithm = s(&primary, "algorithm");
     let state = s(&primary, "state");
     vec![KmsKey {
         provider: Some(Provider::Gcp),
@@ -464,9 +475,29 @@ fn parse_gcp(v: &Value) -> Vec<KmsKey> {
         expires: s(&primary, "destroyTime"),
         version: s(&primary, "name").and_then(|n| n.rsplit('/').next().map(str::to_string)),
         key_spec: algorithm,
+        template_algorithm: s(&template, "algorithm"),
         sources: vec!["keys list".into()],
         ..Default::default()
     }]
+}
+
+/// `gcp:<project>/<location>/<keyRing>` from a key resource name.
+fn gcp_scope(name: &str) -> String {
+    let parts: Vec<&str> = name.split('/').collect();
+    let part = |label: &str| {
+        parts
+            .iter()
+            .position(|p| *p == label)
+            .and_then(|i| parts.get(i + 1))
+            .copied()
+            .unwrap_or("")
+    };
+    format!(
+        "gcp:{}/{}/{}",
+        part("projects"),
+        part("locations"),
+        part("keyRings")
+    )
 }
 
 // --- Classification ----------------------------------------------------------
@@ -481,8 +512,34 @@ pub struct KmsAlgorithm {
     pub symmetric: bool,
 }
 
-/// Map a provider key spec to Boab's canonical algorithm name.
+/// Map a provider key spec to Boab's canonical algorithm name. Without a key
+/// spec, enabled GCP versions decide; when they differ the weakest wins.
 pub fn classify(key: &KmsKey) -> KmsAlgorithm {
+    if key.key_spec.is_none() && !key.version_algorithms.is_empty() {
+        let rank = |s: PqcStatus| match s {
+            PqcStatus::Vulnerable => 0,
+            PqcStatus::Unknown => 1,
+            PqcStatus::Hybrid => 2,
+            PqcStatus::Resistant => 3,
+            PqcStatus::SymmetricOk => 4,
+        };
+        return key
+            .version_algorithms
+            .iter()
+            .map(|a| {
+                classify(&KmsKey {
+                    key_spec: Some(a.clone()),
+                    version_algorithms: Vec::new(),
+                    ..key.clone()
+                })
+            })
+            .min_by_key(|c| rank(c.status))
+            .expect("non-empty");
+    }
+    classify_spec(key)
+}
+
+fn classify_spec(key: &KmsKey) -> KmsAlgorithm {
     use PqcStatus::*;
     let spec = key.key_spec.clone().unwrap_or_default();
     let up = spec.to_ascii_uppercase();
@@ -575,17 +632,25 @@ pub fn classify(key: &KmsKey) -> KmsAlgorithm {
     }
     if up.contains("RSA") {
         let bits = digits(&up).or(key.key_size_bits);
-        let prim = if up.contains("DECRYPT") || usage.contains("ENCRYPT") {
+        // AWS ENCRYPT_DECRYPT, GCP ASYMMETRIC_DECRYPT, Azure encrypt, decrypt,
+        // wrapKey and unwrapKey are all RSA encryption.
+        let prim = if up.contains("DECRYPT")
+            || ["ENCRYPT", "DECRYPT", "WRAPKEY", "UNWRAPKEY"]
+                .iter()
+                .any(|op| usage.contains(op))
+        {
             "pke"
         } else {
             "signature"
         };
         return a("RSA", Vulnerable, prim, bits, false);
     }
-    if up.contains("ED25519") {
+    if up.contains("ED25519") || up == "ECC_NIST_EDWARDS25519" || up.contains("EDWARDS25519") {
         return a("Ed25519", Vulnerable, "signature", Some(256), false);
     }
-    if up.contains("SECP256K1") || up.contains("P256K") {
+    let curve = key.curve.as_deref().unwrap_or("").to_ascii_uppercase();
+    if up.contains("SECP256K1") || up.contains("P256K") || curve == "P-256K" || curve == "SECP256K1"
+    {
         return ec(Some(256), "K1");
     }
     if up == "SM2" {
@@ -629,6 +694,10 @@ fn key_finding(key: &KmsKey) -> HostAsset<'_> {
     put("created", key.created.clone());
     put("expires", key.expires.clone());
     put("key_version", key.version.clone());
+    put("template_algorithm", key.template_algorithm.clone());
+    if !key.version_algorithms.is_empty() {
+        extra.insert("version_algorithms".into(), json!(key.version_algorithms));
+    }
     if let Some(e) = key.enabled {
         extra.insert("enabled".into(), Value::from(e));
     }
@@ -688,6 +757,67 @@ mod tests {
         assert_eq!(c.name, "HMAC-SHA256");
         let c = classify(&key("KEM_XWING", "KEY_ENCAPSULATION"));
         assert_eq!(c.status, PqcStatus::Hybrid);
+        let c = classify(&key("ECC_NIST_EDWARDS25519", "SIGN_VERIFY"));
+        assert_eq!((c.name.as_str(), c.bits), ("Ed25519", Some(256)));
+        let c = classify(&key("RSA", "WRAPKEY,UNWRAPKEY"));
+        assert_eq!(c.primitive, "pke");
+        let c = classify(&key("RSA-HSM", "DECRYPT"));
+        assert_eq!(c.primitive, "pke");
+        let c = classify(&KmsKey {
+            key_spec: Some("EC".into()),
+            key_usage: Some("SIGN,VERIFY".into()),
+            curve: Some("P-256K".into()),
+            key_size_bits: Some(256),
+            ..Default::default()
+        });
+        assert_eq!(c.name, "ECDSA-secp256k1");
+        let c = classify(&key("ECC_SECG_P256K1", "SIGN_VERIFY"));
+        assert_eq!(c.name, "ECDSA-secp256k1");
+    }
+
+    #[test]
+    fn gcp_template_does_not_classify_existing_versions() {
+        let raw = r#"[{"name":"projects/p/locations/l/keyRings/r/cryptoKeys/k","purpose":"ASYMMETRIC_SIGN","versionTemplate":{"algorithm":"PQ_SIGN_ML_DSA_65"}}]"#;
+        let keys = parse_listing(raw, None).unwrap();
+        assert_eq!(
+            keys[0].template_algorithm.as_deref(),
+            Some("PQ_SIGN_ML_DSA_65")
+        );
+        let c = classify(&keys[0]);
+        assert_eq!((c.name.as_str(), c.status), ("unknown", PqcStatus::Unknown));
+
+        // An enabled RSA version from a versions export decides, even after
+        // the template moved to ML-DSA.
+        let versions = r#"[{"name":"projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1","algorithm":"RSA_SIGN_PSS_3072_SHA256","state":"ENABLED"},
+{"name":"projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/2","algorithm":"PQ_SIGN_ML_DSA_65","state":"ENABLED"}]"#;
+        let mut k = keys[0].clone();
+        for v in parse_listing(versions, None).unwrap() {
+            merge(&mut k, v);
+        }
+        let c = classify(&k);
+        assert_eq!((c.name.as_str(), c.status), ("RSA", PqcStatus::Vulnerable));
+    }
+
+    #[test]
+    fn multi_region_replicas_stay_separate() {
+        let raw = r#"{"KeyMetadata":{"KeyId":"mrk-1","Arn":"arn:aws:kms:ap-southeast-2:111122223333:key/mrk-1","KeySpec":"RSA_2048","KeyState":"Enabled"}}
+{"KeyMetadata":{"KeyId":"mrk-1","Arn":"arn:aws:kms:us-east-1:111122223333:key/mrk-1","KeySpec":"RSA_2048","KeyState":"Disabled"}}
+{"Keys":[{"KeyId":"mrk-1","KeyArn":"arn:aws:kms:ap-southeast-2:111122223333:key/mrk-1"}]}"#;
+        let dir = tempfile::TempDir::new().unwrap();
+        let f = dir.path().join("mrk.json");
+        std::fs::write(&f, raw).unwrap();
+        let scan = scan_file(&f, &KmsOptions::default()).unwrap();
+        assert_eq!(
+            scan.findings.len(),
+            2,
+            "one per region; list merges into describe"
+        );
+        let states: Vec<&str> = scan
+            .findings
+            .iter()
+            .map(|f| f.evidence["parameter_set"]["key_state"].as_str().unwrap())
+            .collect();
+        assert!(states.contains(&"Enabled") && states.contains(&"Disabled"));
     }
 
     #[test]

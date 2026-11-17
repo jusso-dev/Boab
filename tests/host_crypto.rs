@@ -254,7 +254,7 @@ fn keystore_entries_become_key_assets_without_secrets() {
     );
     let inv = inventory(tmp.path());
     let entries = of_kind(&inv, "keystore_entry");
-    assert_eq!(entries.len(), 3, "two JKS aliases and one PKCS#12 entry");
+    assert_eq!(entries.len(), 4, "three JKS aliases and one PKCS#12 entry");
     let tomcat = entries
         .iter()
         .find(|a| a["parameter_set"]["alias"] == "tomcat")
@@ -325,7 +325,7 @@ fn jks_with_wrong_password_is_listed_unverified() {
     );
     let inv = inventory(tmp.path());
     let entries = of_kind(&inv, "keystore_entry");
-    assert_eq!(entries.len(), 2);
+    assert_eq!(entries.len(), 3);
     assert!(entries
         .iter()
         .all(|e| e["parameter_set"]["integrity_verified"] == false));
@@ -385,11 +385,14 @@ fn kms_listings_record_metadata_only() {
         "https://example-vault.vault.azure.net/keys/payments-signing"
     );
 
+    // Template-only GCP key: the template is recorded but does not classify
+    // existing versions.
     let pq = keys
         .iter()
-        .find(|k| k["algorithm_name"] == "ML-DSA-65")
+        .find(|k| k["parameter_set"]["template_algorithm"] == "PQ_SIGN_ML_DSA_65")
         .unwrap();
-    assert_eq!(pq["pqc_status"], "resistant");
+    assert_eq!(pq["algorithm_name"], "unknown");
+    assert_eq!(pq["pqc_status"], "unknown");
     let sym = keys
         .iter()
         .find(|k| k["parameter_set"]["key_spec"] == "GOOGLE_SYMMETRIC_ENCRYPTION")
@@ -578,4 +581,233 @@ fn json_report_scores_new_assets_and_plans_pick_them_up() {
         .unwrap()
         .iter()
         .any(|s| s["scan_type"] == "host_crypto"));
+}
+
+fn scan_record(ws: &Path) -> Value {
+    let dir = ws.join(".boab/scans");
+    let f = fs::read_dir(dir).unwrap().flatten().next().unwrap().path();
+    serde_json::from_slice(&fs::read(f).unwrap()).unwrap()
+}
+
+#[cfg(unix)]
+#[test]
+fn host_scan_resolves_symlinks_inside_the_root() {
+    use std::os::unix::fs::symlink;
+    let tmp = init();
+    let root = tmp.path().join("image");
+    fs::create_dir_all(root.join("etc/ssl")).unwrap();
+    fs::create_dir_all(root.join("etc/pki/tls")).unwrap();
+    // Absolute link, as on a real Debian or RHEL image. It must resolve to
+    // <root>/etc/pki/tls/openssl.cnf, never to the scanning machine's file.
+    fs::write(
+        root.join("etc/pki/tls/openssl.cnf"),
+        "openssl_conf = init\n[init]\nssl_conf = ssl\n[ssl]\nsystem_default = sys\n[sys]\nMinProtocol = TLSv1.3\nMarkerInRoot = yes\n",
+    )
+    .unwrap();
+    symlink("/etc/pki/tls/openssl.cnf", root.join("etc/ssl/openssl.cnf")).unwrap();
+    // A link that tries to climb out of the root stays inside it.
+    fs::create_dir_all(root.join("etc/ssh")).unwrap();
+    symlink(
+        "../../../../../../../../etc/ssh/sshd_config",
+        root.join("etc/ssh/sshd_config"),
+    )
+    .unwrap();
+    boab(
+        tmp.path(),
+        &["scan", "host", root.to_str().unwrap(), "--host", "img"],
+    );
+    let inv = inventory(tmp.path());
+    let openssl = of_kind(&inv, "openssl_config");
+    assert_eq!(openssl.len(), 1, "one file behind two names");
+    assert_eq!(openssl[0]["parameter_set"]["min_protocol"], "TLSv1.3");
+    assert_eq!(openssl[0]["parameter_set"]["ssl_section"], "sys");
+    // The climbing link resolved to <root>/etc/ssh/sshd_config, which is the
+    // link itself: nothing from the scanning machine was read.
+    assert!(of_kind(&inv, "ssh_config_algorithm").is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn host_scan_reports_unreadable_paths() {
+    use std::os::unix::fs::PermissionsExt;
+    if std::env::var("USER").as_deref() == Ok("root") {
+        return; // root ignores permissions
+    }
+    let tmp = init();
+    let root = tmp.path().join("root");
+    copy_tree(&fixture("host/rhel9"), &root);
+    let cfg = root.join("etc/ssh/sshd_config");
+    fs::set_permissions(&cfg, fs::Permissions::from_mode(0o000)).unwrap();
+    boab(tmp.path(), &["scan", "host", root.to_str().unwrap()]);
+    fs::set_permissions(&cfg, fs::Permissions::from_mode(0o644)).unwrap();
+    let scan = scan_record(tmp.path());
+    assert_eq!(scan["scan_type"], "host_crypto");
+    let errors = scan["config"]["collection_errors"].as_array().unwrap();
+    assert!(errors
+        .iter()
+        .any(|e| e.as_str().unwrap().starts_with("/etc/ssh/sshd_config:")));
+    assert!(scan["error_message"]
+        .as_str()
+        .unwrap()
+        .contains("may be incomplete"));
+}
+
+#[test]
+fn malformed_public_key_keeps_the_name_based_record() {
+    let tmp = init();
+    let root = tmp.path().join("root");
+    copy_tree(&fixture("host/rhel9"), &root);
+    fs::write(root.join("etc/ssh/ssh_host_rsa_key.pub"), "not a key\n").unwrap();
+    boab(tmp.path(), &["scan", "host", root.to_str().unwrap()]);
+    let inv = inventory(tmp.path());
+    let rsa: Vec<_> = of_kind(&inv, "ssh_host_key")
+        .into_iter()
+        .filter(|a| a["algorithm_name"] == "RSA")
+        .collect();
+    assert_eq!(rsa.len(), 1, "RSA host key still inventoried");
+    assert_eq!(rsa[0]["parameter_set"]["public_key_available"], false);
+    assert_eq!(
+        rsa[0]["parameter_set"]["location"],
+        "/etc/ssh/ssh_host_rsa_key"
+    );
+}
+
+#[test]
+fn rescan_refreshes_scanner_fields_and_keeps_user_fields() {
+    let tmp = init();
+    let root = tmp.path().join("root");
+    copy_tree(&fixture("host/rhel9"), &root);
+    boab(tmp.path(), &["scan", "host", root.to_str().unwrap()]);
+    // User annotates the TLS policy asset.
+    let inv_path = tmp.path().join(".boab/inventory.json");
+    let mut inv: Vec<Value> = serde_json::from_slice(&fs::read(&inv_path).unwrap()).unwrap();
+    let idx = inv
+        .iter()
+        .position(|a| a["parameter_set"]["kind"] == "openssl_config")
+        .unwrap();
+    let id = inv[idx]["id"].clone();
+    inv[idx]["notes"] = Value::from("owned by platform team");
+    inv[idx]["migration_status"] = Value::from("in_progress");
+    fs::write(&inv_path, serde_json::to_vec_pretty(&inv).unwrap()).unwrap();
+
+    // The host enables a hybrid group; same identity, new content.
+    let backend = root.join("etc/crypto-policies/back-ends/opensslcnf.config");
+    let text = fs::read_to_string(&backend)
+        .unwrap()
+        .replace("Groups = X25519:", "Groups = X25519MLKEM768:X25519:");
+    fs::write(&backend, text).unwrap();
+    boab(tmp.path(), &["scan", "host", root.to_str().unwrap()]);
+
+    let inv = inventory(tmp.path());
+    let a: Vec<_> = of_kind(&inv, "openssl_config");
+    assert_eq!(a.len(), 1);
+    assert_eq!(a[0]["id"], id, "asset id kept");
+    assert_eq!(a[0]["pqc_status"], "hybrid", "scanner fields refreshed");
+    assert_eq!(a[0]["notes"], "owned by platform team");
+    assert_eq!(a[0]["migration_status"], "in_progress");
+    assert_eq!(a[0]["primitive"], Value::Null);
+}
+
+#[test]
+fn jceks_secret_keys_do_not_hide_later_entries() {
+    let tmp = init();
+    let dir = fixture("jceks");
+    boab(
+        tmp.path(),
+        &[
+            "scan",
+            "certs",
+            dir.to_str().unwrap(),
+            "--password-file",
+            dir.join("password.txt").to_str().unwrap(),
+        ],
+    );
+    let inv = inventory(tmp.path());
+    let entries = of_kind(&inv, "keystore_entry");
+    let mut aliases: Vec<&str> = entries
+        .iter()
+        .map(|e| e["parameter_set"]["alias"].as_str().unwrap())
+        .collect();
+    aliases.sort();
+    assert_eq!(aliases, vec!["aes-data", "hmac-sig", "zz-partner"]);
+    for e in &entries {
+        if e["parameter_set"]["entry_type"] == "secret_key" {
+            assert_eq!(e["algorithm_name"], "unknown");
+            assert_eq!(e["primitive"], Value::Null, "no guessed primitive");
+            assert_eq!(
+                e["parameter_set"]["seal_algorithm"],
+                "PBEWithMD5AndTripleDES"
+            );
+        }
+        assert_eq!(e["parameter_set"]["integrity_verified"], true);
+    }
+}
+
+#[test]
+fn pkcs12_without_a_mac_is_not_reported_as_verified() {
+    let tmp = init();
+    boab(
+        tmp.path(),
+        &[
+            "scan",
+            "certs",
+            fixture("pkcs12-nomac").to_str().unwrap(),
+            "--password-file",
+            fixture("keystores/password.txt").to_str().unwrap(),
+        ],
+    );
+    let inv = inventory(tmp.path());
+    let e = of_kind(&inv, "keystore_entry");
+    assert_eq!(e.len(), 1);
+    assert_eq!(e[0]["parameter_set"]["integrity_verified"], Value::Null);
+}
+
+#[test]
+fn p521_keystore_entry_has_its_curve_size() {
+    let tmp = init();
+    let ks = fixture("keystores");
+    boab(
+        tmp.path(),
+        &[
+            "scan",
+            "certs",
+            ks.to_str().unwrap(),
+            "--password-file",
+            ks.join("password.txt").to_str().unwrap(),
+        ],
+    );
+    let inv = inventory(tmp.path());
+    let p521 = of_kind(&inv, "keystore_entry")
+        .into_iter()
+        .find(|e| e["parameter_set"]["alias"] == "p521-ca")
+        .unwrap();
+    assert_eq!(p521["algorithm_name"], "ECDSA-P521");
+    assert_eq!(p521["parameter_set"]["key_size_bits"], 521);
+}
+
+#[test]
+fn html_scope_line_names_host_and_kms_scans() {
+    let tmp = init();
+    let ws = tmp.path();
+    boab(
+        ws,
+        &["scan", "host", fixture("host/rhel9").to_str().unwrap()],
+    );
+    boab(
+        ws,
+        &[
+            "scan",
+            "kms",
+            fixture("kms/aws-describe-key.json").to_str().unwrap(),
+        ],
+    );
+    let out = ws.join("r.html");
+    boab(
+        ws,
+        &["report", "--format", "html", "-o", out.to_str().unwrap()],
+    );
+    let html = fs::read_to_string(out).unwrap();
+    assert!(html.contains(
+        "0 certificate store scans &middot; 1 host crypto scan &middot; 1 KMS listing import"
+    ));
 }
