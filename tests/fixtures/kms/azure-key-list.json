@@ -1,0 +1,27 @@
+[
+  {
+    "attributes": {
+      "created": "2024-05-10T01:00:00+00:00",
+      "enabled": true,
+      "expires": null,
+      "recoveryLevel": "Recoverable+Purgeable",
+      "updated": "2024-05-10T01:00:00+00:00"
+    },
+    "kid": "https://example-vault.vault.azure.net/keys/payments-signing",
+    "managed": null,
+    "name": "payments-signing",
+    "tags": {}
+  },
+  {
+    "attributes": {
+      "created": "2024-06-01T01:00:00+00:00",
+      "enabled": false,
+      "expires": "2027-06-01T00:00:00+00:00",
+      "updated": "2024-06-01T01:00:00+00:00"
+    },
+    "kid": "https://example-vault.vault.azure.net/keys/legacy-ec",
+    "managed": null,
+    "name": "legacy-ec",
+    "tags": {}
+  }
+]

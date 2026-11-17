@@ -376,8 +376,9 @@ fn parse_azure(v: &Value) -> Vec<KmsKey> {
     vec![KmsKey {
         provider: Some(Provider::Azure),
         scope: format!("azure:{}", vault),
+        // Versionless URI, so `key list` and `key show` name the key the same way.
+        key_ref: key_id.clone(),
         key_id,
-        key_ref: kid,
         protection_level: kty.as_deref().map(|t| {
             if t.ends_with("-HSM") {
                 "HSM".to_string()

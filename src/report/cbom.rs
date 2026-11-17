@@ -405,15 +405,21 @@ fn host_crypto_component(asset: &CryptoAsset, kind: &str) -> Value {
     }
 
     let location = param_str(asset, "location").unwrap_or_default();
-    json!({
-        "type": "cryptographic-asset",
-        "bom-ref": format!("boab:{}", asset.id),
-        "name": asset.name,
-        "description": asset.description,
-        "cryptoProperties": crypto,
-        "evidence": { "occurrences": [ { "location": location } ] },
-        "properties": host_crypto_properties(asset, kind),
-    })
+    let mut c = serde_json::Map::new();
+    c.insert("type".into(), json!("cryptographic-asset"));
+    c.insert("bom-ref".into(), json!(format!("boab:{}", asset.id)));
+    c.insert("name".into(), json!(asset.name));
+    // CycloneDX requires a string; omit rather than write null.
+    if let Some(d) = &asset.description {
+        c.insert("description".into(), json!(d));
+    }
+    c.insert("cryptoProperties".into(), Value::Object(crypto));
+    c.insert(
+        "evidence".into(),
+        json!({ "occurrences": [ { "location": location } ] }),
+    );
+    c.insert("properties".into(), host_crypto_properties(asset, kind));
+    Value::Object(c)
 }
 
 /// `boab:` properties, in a fixed order. Absent values are omitted. This is the
