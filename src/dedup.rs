@@ -58,6 +58,8 @@ struct FindingKey {
     key_size_bits: Option<u64>,
     source_root: String,
     library_name: Option<String>,
+    /// Display name supplied by the scanner (host crypto kinds).
+    asset_name: Option<String>,
 }
 
 fn parse_primitive(s: &str) -> Option<Primitive> {
@@ -109,6 +111,10 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
 
     let source_root = source_root_of(&finding.source_location);
 
+    if let Some(asset_type) = crate::scanners::host_crypto_asset_type(kind) {
+        return Ok(host_crypto_finding_key(finding, kind, asset_type));
+    }
+
     match kind {
         "cert_or_keystore_file" => {
             // Cert/keystore files: fingerprint the bytes.
@@ -126,6 +132,7 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
                 key_size_bits: None,
                 source_root,
                 library_name: None,
+                asset_name: None,
             })
         }
         "algorithm_match" => {
@@ -164,6 +171,7 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
                 key_size_bits,
                 source_root,
                 library_name: None,
+                asset_name: None,
             })
         }
         "library_import" => {
@@ -183,6 +191,7 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
                 key_size_bits: None,
                 source_root,
                 library_name: Some(lib),
+                asset_name: None,
             })
         }
         "tls_certificate" => {
@@ -210,6 +219,7 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
                     .and_then(|v| v.as_u64()),
                 source_root,
                 library_name: None,
+                asset_name: None,
             })
         }
         "tls_endpoint" => {
@@ -229,6 +239,7 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
                 key_size_bits: None,
                 source_root: source_root.clone(),
                 library_name: None,
+                asset_name: None,
             })
         }
         "tls_supported_group" => {
@@ -248,6 +259,7 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
                 key_size_bits: None,
                 source_root: source_root.clone(),
                 library_name: None,
+                asset_name: None,
             })
         }
         _ => Ok(FindingKey {
@@ -259,11 +271,65 @@ fn finding_dedup_key(finding: &Finding) -> Result<FindingKey> {
             key_size_bits: None,
             source_root,
             library_name: None,
+            asset_name: None,
         }),
     }
 }
 
+/// Host crypto, keystore and KMS findings carry everything in
+/// `evidence.parameter_set`; the key is computed from those same fields so it
+/// matches `asset_dedup_key` on the stored asset.
+fn host_crypto_finding_key(finding: &Finding, kind: &str, asset_type: AssetType) -> FindingKey {
+    let ev = &finding.evidence;
+    let params = ev
+        .get("parameter_set")
+        .cloned()
+        .unwrap_or(Value::Object(serde_json::Map::new()));
+    let algorithm_name = ev
+        .get("algorithm_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let dedup_key = crate::scanners::host_crypto_dedup_key(kind, &algorithm_name, &params)
+        .unwrap_or_else(|| format!("other:{}", finding.source_location));
+    FindingKey {
+        dedup_key,
+        asset_type,
+        pqc_status: parse_pqc_status(ev.get("pqc_status").unwrap_or(&Value::Null)),
+        primitive: params
+            .get("primitive")
+            .and_then(|v| v.as_str())
+            .and_then(parse_primitive),
+        key_size_bits: params.get("key_size_bits").and_then(|v| v.as_u64()),
+        source_root: params
+            .get("host")
+            .and_then(|v| v.as_str())
+            .unwrap_or("_")
+            .to_string(),
+        library_name: None,
+        asset_name: ev
+            .get("asset_name")
+            .and_then(|v| v.as_str())
+            .map(str::to_string),
+        algorithm_name,
+    }
+}
+
 fn asset_dedup_key(asset: &CryptoAsset, source_root_override: Option<&str>) -> String {
+    if let Some(key) = asset
+        .parameter_set
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .and_then(|kind| {
+            crate::scanners::host_crypto_dedup_key(
+                kind,
+                &asset.algorithm_name,
+                &asset.parameter_set,
+            )
+        })
+    {
+        return key;
+    }
     let key_size = asset
         .parameter_set
         .get("key_size_bits")
@@ -342,6 +408,7 @@ fn build_asset_from_finding(finding: &Finding, key: FindingKey) -> Result<Crypto
     );
     let mig_diff = migration_difficulty_for(key.asset_type, key.pqc_status);
     let display_name = match key.asset_type {
+        _ if key.asset_name.is_some() => key.asset_name.clone().unwrap_or_default(),
         AssetType::LibraryDependency => key
             .library_name
             .clone()

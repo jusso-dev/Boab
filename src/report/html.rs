@@ -164,7 +164,9 @@ pub fn render(ws: &Workspace) -> Result<String> {
         scan_counts[match s.scan_type {
             ScanType::Codebase => 0,
             ScanType::TlsEndpoint => 1,
-            ScanType::CertificateStore => 2,
+            // Host crypto and KMS imports count with certificate stores so
+            // the scope line keeps its existing wording.
+            ScanType::CertificateStore | ScanType::HostCrypto | ScanType::KmsListing => 2,
         }] += 1;
     }
     h.push_str(&format!(

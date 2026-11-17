@@ -163,6 +163,10 @@ pub enum ScanCommand {
     Tls(ScanTlsArgs),
     /// Scan a directory of certificate files.
     Certs(ScanCertsArgs),
+    /// Scan SSH host keys, sshd_config, crypto policy and OpenSSL config under a root.
+    Host(ScanHostArgs),
+    /// Import exported AWS, Azure or Google Cloud KMS key listings (metadata only).
+    Kms(ScanKmsArgs),
 }
 
 #[derive(Debug, Args)]
@@ -214,6 +218,35 @@ pub struct ScanCertsArgs {
     /// Path to a file containing the keystore password.
     #[arg(long)]
     pub password_file: Option<PathBuf>,
+    /// Name for the scan record.
+    #[arg(long)]
+    pub name: Option<String>,
+    /// Host label recorded on keystore entries (default: this machine's host name).
+    #[arg(long)]
+    pub host: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ScanHostArgs {
+    /// Filesystem root to read (/ for this machine, or a mounted image or copied /etc tree).
+    #[arg(default_value = "/")]
+    pub root: PathBuf,
+    /// Host label recorded on every asset (default: <root>/etc/hostname).
+    #[arg(long)]
+    pub host: Option<String>,
+    /// Name for the scan record.
+    #[arg(long)]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ScanKmsArgs {
+    /// Exported listing files (aws kms list-keys/describe-key, az keyvault key list/show, gcloud kms keys list --format=json).
+    #[arg(required = true)]
+    pub files: Vec<PathBuf>,
+    /// Provider of the listings: aws, azure, or gcp (default: detect from each file).
+    #[arg(long)]
+    pub provider: Option<String>,
     /// Name for the scan record.
     #[arg(long)]
     pub name: Option<String>,
